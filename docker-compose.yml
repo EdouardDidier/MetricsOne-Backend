@@ -1,0 +1,64 @@
+name: metrics-one
+services:
+  database: 
+    container_name: database
+    build: 
+      context: .
+      target: database
+    restart: always
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+    networks:
+      - network
+    environment:
+      POSTGRES_DB: metrics-one
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: MetricsOne
+    ports:
+      - 5432:5432
+
+  api:
+    container_name: api
+    build:
+      context: .
+      target: api
+    networks:
+      - network
+    environment:
+      - SERVER.HTTP.HOST=0.0.0.0
+      - SERVER.HTTP.PORT=8080
+      - SERVER.GRPC.HOST=0.0.0.0
+      - SERVER.GRPC.PORT=50051
+      - DB.USER=api
+      - DB.PASSWORD=MetricsOne
+      - DB.HOST=database
+      - DB.PORT=5432
+      - DB.DBNAME=metrics-one
+      - DB.POOL_MAX_SIZE=20
+      - WORKER.HOST=worker
+      - WORKER.PORT=50052
+      - RUST_LOG=metrics_one_api=debug,metrics_one_common=debug
+    ports:
+      - 8080:8080
+      - 50051:50051
+
+  worker:
+    container_name: worker
+    build:
+      context: .
+      target: worker
+    networks:
+      - network
+    environment:
+      - SERVER.HOST=0.0.0.0
+      - SERVER.PORT=50052
+      - API.HOST=api
+      - API.PORT=50051
+      - LIVETIMING_URL=https://livetiming.formula1.com/static
+      - RUST_LOG=metrics_one_worker=debug,metrics_one_common=debug
+    ports:
+      - 50052:50052 
+
+networks:
+  network: 
+    driver: bridge

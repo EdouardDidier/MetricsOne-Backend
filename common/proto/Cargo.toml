@@ -1,0 +1,15 @@
+[package]
+name = "metrics_one_proto"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+metrics_one_macros = { workspace = true }
+tonic = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+prost = "0.13.5"
+prost-types = "0.13.5"
+
+[build-dependencies]
+tonic-build = "0.13.1"

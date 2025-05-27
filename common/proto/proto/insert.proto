@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package insert;
+
+service InsertService {
+  rpc InsertMeetings(InsertMeetingsRequest) returns (InsertMeetingsResponse);
+}
+
+message InsertMeetingsRequest {
+  message Meeting {
+    int32 key = 1;
+    int32 number = 2;
+    string location = 3;
+    string official_name = 4;
+    string name = 5;
+    int32 year = 6;
+  }
+
+  repeated Meeting meetings = 1;
+}
+
+message InsertMeetingsResponse {}

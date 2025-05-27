@@ -1,0 +1,11 @@
+.git
+.gitignore
+
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+**/target
+
+./database/data
+./database/setup.bat

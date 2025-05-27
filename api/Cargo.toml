@@ -1,0 +1,23 @@
+[package]
+name = "metrics_one_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+metrics_one_proto = { workspace = true }
+metrics_one_models = { workspace = true }
+metrics_one_macros = { workspace = true }
+metrics_one_utils = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+sqlx = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenv = { workspace = true }
+config = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+actix-web = "4.11.0"
+tracing-actix-web = "0.7.18"

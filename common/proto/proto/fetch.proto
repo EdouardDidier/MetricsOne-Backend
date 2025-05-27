@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package fetch;
+
+
+service FetchService {
+  rpc FetchMeetings(FetchMeetingsRequest) returns (FetchMeetingsResponse);
+}
+
+message FetchMeetingsRequest {
+  int32 year = 1;
+  repeated int32 keys = 2;
+}
+
+message FetchMeetingsResponse {}
