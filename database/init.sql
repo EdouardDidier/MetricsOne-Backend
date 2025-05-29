@@ -1,7 +1,9 @@
-BEGIN;
-
 /* Drop default database */
 DROP DATABASE IF EXISTS postgres;
+
+
+BEGIN;
+
 
 DROP TABLE IF EXISTS public.drivers_images;
 DROP TABLE IF EXISTS public.drivers;
@@ -31,14 +33,13 @@ DROP TABLE IF EXISTS public.teams;
 
 CREATE TABLE IF NOT EXISTS public.teams
 (
-    id serial,
+    id serial PRIMARY KEY,
     uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
     name character varying(255) NOT NULL,
     url character varying(255) GENERATED ALWAYS AS (LOWER(REPLACE(name, ' ', '-'))) STORED NOT NULL,
     colour character(6) NOT NULL,
     year integer NOT NULL,
-    reference character varying(255) NOT NULL,
-    PRIMARY KEY (id)
+    reference character varying(255) NOT NULL
 )
 WITH (
     OIDS = FALSE
@@ -53,6 +54,7 @@ ALTER TABLE IF EXISTS public.drivers
 
 
 
+DROP TABLE IF EXISTS public.sessions;
 DROP TABLE IF EXISTS public.meetings;
 
 CREATE TABLE IF NOT EXISTS public.meetings
@@ -70,6 +72,32 @@ CREATE TABLE IF NOT EXISTS public.meetings
 WITH (
     OIDS = FALSE
 );
+
+
+
+
+CREATE TABLE IF NOT EXISTS public.sessions
+(
+    id serial PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
+    key integer UNIQUE NOT NULL,
+    kind character varying(255) NOT NULL,
+    name character varying(255) NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    path character varying(255) NOT NULL,
+    meeting_key integer NOT NULL
+)
+WITH (
+    OIDS = FALSE
+);
+
+ALTER TABLE IF EXISTS public.sessions
+    ADD FOREIGN KEY (meeting_key)
+    REFERENCES public.meetings (key) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
 
 
 

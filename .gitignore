@@ -2,4 +2,4 @@
 **/.env
 
 # Database volume
-./database/data
+/database/data/
