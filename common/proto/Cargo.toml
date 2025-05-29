@@ -8,8 +8,10 @@ metrics_one_macros = { workspace = true }
 tonic = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }
+chrono = { workspace = true }
 prost = "0.13.5"
-prost-types = "0.13.5"
+prost-types = { workspace = true }
 
 [build-dependencies]
 tonic-build = "0.13.1"
+prost-wkt-types = "0.6.1"

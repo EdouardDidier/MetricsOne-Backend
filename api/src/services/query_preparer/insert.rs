@@ -38,6 +38,7 @@ impl<'q> InsertQuery<'q> {
                     match v {
                         SqlType::Int(v) => query.push_bind(v),
                         SqlType::Text(v) => query.push_bind(v),
+                        SqlType::Timestamp(v) => query.push_bind(v),
                     };
                 }
             });

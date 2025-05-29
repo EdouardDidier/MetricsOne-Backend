@@ -1,11 +1,9 @@
-use metrics_one_proto::proto::{self, insert_meetings_request::Meeting};
+use metrics_one_models::{Meeting, Session};
+use metrics_one_proto::{proto, utils::timestamp_to_datetime};
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
-use crate::{
-    // models::Meeting,
-    services::query_preparer::{SqlType, insert::InsertQuery},
-};
+use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;
 
@@ -14,6 +12,7 @@ pub async fn insert(
     handler: &InsertServiceHandler,
     request: tonic::Request<proto::InsertMeetingsRequest>,
 ) -> Result<tonic::Response<proto::InsertMeetingsResponse>, tonic::Status> {
+    let year = request.get_ref().year;
     let meetings = &request.get_ref().meetings;
 
     debug!("Request received with {} insertions", meetings.len());
@@ -26,39 +25,75 @@ pub async fn insert(
         return Ok(tonic::Response::new(response));
     }
 
-    // Prepare the query
-    let mut query_builder = InsertQuery::new(Meeting::SQL_TABLE, Vec::from(Meeting::SQL_FIELDS));
+    // Prepare queries
+    let mut meetings_query = InsertQuery::new(Meeting::SQL_TABLE, Vec::from(Meeting::SQL_FIELDS));
+    let mut sessions_query = InsertQuery::new(Session::SQL_TABLE, Vec::from(Session::SQL_FIELDS));
 
+    // TODO: use move statement and into_iter() to avoid data cloning
     for m in meetings {
-        let mut values = Vec::new();
+        let mut meetings_values = Vec::new();
 
-        values.push(SqlType::Int(m.key));
-        values.push(SqlType::Int(m.number));
-        values.push(SqlType::Text(m.location.clone()));
-        values.push(SqlType::Text(m.official_name.clone()));
-        values.push(SqlType::Text(m.name.clone()));
-        values.push(SqlType::Int(m.year));
+        // TODO: Order matter here, change so it doesn't depend on order
+        meetings_values.push(SqlType::Int(m.key));
+        meetings_values.push(SqlType::Int(m.number));
+        meetings_values.push(SqlType::Text(m.location.clone()));
+        meetings_values.push(SqlType::Text(m.official_name.clone()));
+        meetings_values.push(SqlType::Text(m.name.clone()));
+        meetings_values.push(SqlType::Int(year));
 
-        if let Err(err) = query_builder.add_values(values) {
-            let message = "Failed to preapre the query";
+        if let Err(err) = meetings_query.add_values(meetings_values) {
+            let message = "Failed to prepare 'meetings' query";
             error!(error = ?err, message);
             return Err(tonic::Status::internal(message));
         }
+
+        for s in m.sessions.iter() {
+            let mut sessions_values = Vec::new();
+
+            // TODO: Handle errors properly
+            let start_date = timestamp_to_datetime(&s.start_date.unwrap()).unwrap();
+            let end_date = timestamp_to_datetime(&s.end_date.unwrap()).unwrap();
+
+            // TODO: Order matter here, change so it doesn't depend on order
+            sessions_values.push(SqlType::Int(s.key));
+            sessions_values.push(SqlType::Text(s.kind.clone()));
+            sessions_values.push(SqlType::Text(s.name.clone()));
+            sessions_values.push(SqlType::Timestamp(start_date));
+            sessions_values.push(SqlType::Timestamp(end_date));
+            sessions_values.push(SqlType::Text(s.path.clone()));
+            sessions_values.push(SqlType::Int(m.key));
+
+            if let Err(err) = sessions_query.add_values(sessions_values) {
+                let message = "Failed to prepare 'sessions' query";
+                error!(error = ?err, message);
+                return Err(tonic::Status::internal(message));
+            }
+        }
     }
 
-    let query = query_builder.build();
-    trace!("Query prepared in {:?}", time.elapsed());
+    let meetings_query = meetings_query.build();
+    let sessions_query = sessions_query.build();
+    trace!("Queries prepared in {:?}", time.elapsed());
 
-    debug!("SQL query - {}", query.sql());
+    debug!("SQL query - {}", meetings_query.sql());
 
-    if let Err(err) = query.execute(handler.db.as_ref()).await {
+    if let Err(err) = meetings_query.execute(handler.db.as_ref()).await {
         let message = "Failed to process the SQL request";
         error!(error = ?err, message);
         return Err(tonic::Status::internal(message));
     }
 
+    debug!("SQL query - {}", sessions_query.sql());
+
+    if let Err(err) = sessions_query.execute(handler.db.as_ref()).await {
+        let message = "Failed to process the SQL request";
+        error!(error = ?err, message);
+        return Err(tonic::Status::internal(message));
+    }
+
+    //TODO: Add info on the number of sessions added
     info!(
-        "Inserted {} entries successfully in {:?}",
+        "Inserted {} 'meetings' successfully in {:?}",
         meetings.len(),
         time.elapsed()
     );

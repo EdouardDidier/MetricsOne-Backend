@@ -4,7 +4,7 @@ use metrics_one_proto::proto::{
 use tonic::transport::Channel;
 use tracing::{debug, info, instrument, trace};
 
-use crate::settings::ENV;
+use crate::{models::Meetings, settings::ENV};
 
 use super::FetchServiceHandler;
 
@@ -49,21 +49,16 @@ async fn fetch_job(
 
     // Parse data from json
     let text = res.text().await?;
-    let mut meetings: InsertMeetingsRequest =
+    let meetings_response: Meetings =
         serde_json::from_str(text.trim_start_matches('\u{feff}').trim())?;
+
+    // TODO: convert start and end date witn offset in the 'into' implementation
+    let mut meetings: InsertMeetingsRequest = meetings_response.into();
 
     trace!("Data parsed in {:?}", time.elapsed());
 
     // Prepare meetings to be sent to API service for insertion
-    meetings.meetings.retain_mut(|m| {
-        let keep = !params.keys.contains(&m.key);
-
-        if keep {
-            m.year = params.year;
-        }
-
-        keep
-    });
+    meetings.meetings.retain(|m| !params.keys.contains(&m.key));
 
     trace!("Data processed in {:?}", time.elapsed());
 

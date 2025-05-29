@@ -7,3 +7,4 @@ edition = "2024"
 metrics_one_macros = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }
+chrono = { workspace = true }

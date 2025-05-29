@@ -217,6 +217,7 @@ where
                 match &f.value {
                     SqlType::Int(v) => self.query_builder.push_bind(v.clone()),
                     SqlType::Text(v) => self.query_builder.push_bind(v.clone()),
+                    SqlType::Timestamp(v) => self.query_builder.push_bind(v.clone()),
                 };
 
                 if it.peek().is_some() {

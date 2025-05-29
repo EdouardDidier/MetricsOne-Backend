@@ -7,7 +7,8 @@ use actix_web::{
     web::{self, Data},
 };
 use chrono::Datelike;
-use metrics_one_proto::proto::{self, insert_meetings_request::Meeting};
+use metrics_one_models::Meeting;
+use metrics_one_proto::proto;
 use metrics_one_utils::utils;
 use serde::Deserialize;
 use sqlx::Execute;

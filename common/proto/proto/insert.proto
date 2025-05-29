@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package insert;
 
 service InsertService {
@@ -8,15 +10,26 @@ service InsertService {
 
 message InsertMeetingsRequest {
   message Meeting {
+    message Session {
+      int32 key = 1; 
+      string kind = 2; 
+      string name = 3 ;
+      google.protobuf.Timestamp start_date = 4; 
+      google.protobuf.Timestamp end_date = 5; 
+      string path = 6; 
+    }
+
     int32 key = 1;
     int32 number = 2;
     string location = 3;
     string official_name = 4;
     string name = 5;
-    int32 year = 6;
+
+    repeated Session sessions = 7;
   }
 
-  repeated Meeting meetings = 1;
+  int32 year = 1;
+  repeated Meeting meetings = 2;
 }
 
 message InsertMeetingsResponse {}

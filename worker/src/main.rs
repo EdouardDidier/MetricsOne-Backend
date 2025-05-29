@@ -1,4 +1,5 @@
 mod grpc;
+mod models;
 mod settings;
 
 use std::{sync::Arc, time::Duration};
