@@ -40,11 +40,7 @@ impl MeetingsParams {
 /* /////////////////////// */
 
 #[get("/{year}/meetings")]
-async fn fetch_meetings(
-    state: Data<AppState>,
-    _info: web::Query<MeetingsParams>,
-    path: web::Path<i32>,
-) -> impl Responder {
+async fn fetch_meetings(state: Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let params = MeetingsParams {
         year: Some(path.into_inner()),
     };
