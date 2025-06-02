@@ -111,6 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .service(services::http::fetch_teams)
                 .service(services::http::fetch_team_by_name)
                 .service(services::http::fetch_meetings)
+                .service(services::http::fetch_sessions)
         })
         .bind(server_http_addr.clone())
         .inspect_err(|err| {
