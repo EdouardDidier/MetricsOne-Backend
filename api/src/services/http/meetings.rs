@@ -108,7 +108,7 @@ async fn fetch_meetings(
     match worker.fetch_meetings(req).await {
         Ok(_) => {
             // Respond with "Accepted" status to indicate the request is being process
-            HttpResponse::Accepted().body("[]")
+            HttpResponse::Accepted().json(serde_json::json!([]))
         }
         Err(err) => {
             error!(error = ?err, "Failed to execute gRPC request");
