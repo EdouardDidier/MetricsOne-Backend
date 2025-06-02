@@ -8,11 +8,9 @@ use actix_web::{
 };
 use chrono::Datelike;
 use metrics_one_models::Meeting;
-use metrics_one_proto::proto;
-use metrics_one_utils::utils;
+use metrics_one_proto::proto::{self};
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::instrument;
 use tracing::{debug, error, info, trace};
 
 /* ///////////////////////// */
@@ -24,22 +22,33 @@ struct MeetingsParams {
     pub year: Option<i32>,
 }
 
+impl MeetingsParams {
+    fn get_year(&self) -> i32 {
+        match self.year {
+            Some(res) => res,
+            None => {
+                let current_year = chrono::Utc::now().year();
+                debug!("No year specified, defaulting to {}", current_year);
+                current_year
+            }
+        }
+    }
+}
+
 /* /////////////////////// */
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
 
-#[instrument(name = "[HTTP Handler] GET /{year}/drivers", skip_all)]
 #[get("/{year}/meetings")]
 async fn fetch_meetings(
     state: Data<AppState>,
     _info: web::Query<MeetingsParams>,
     path: web::Path<i32>,
 ) -> impl Responder {
-    let mut worker_client = state.worker.clone();
-
     let params = MeetingsParams {
         year: Some(path.into_inner()),
     };
+    let mut worker = state.worker.clone();
 
     debug!(parameters = ?params, "Request received with");
     let time = std::time::Instant::now();
@@ -67,28 +76,23 @@ async fn fetch_meetings(
         }
     };
 
-    let year = utils::get_year(params.year);
-    let current_year = chrono::Utc::now().year();
-
-    // If meetings are found in the database and the request is from a previous year
-    // Reply with fetched data
-    // Otherwise proceed to prepare gRPC request to fetch additional meetings
-    if meetings.len() > 1 && year != current_year {
+    // If meetings are found in the database,
+    if meetings.len() > 1 {
         return HttpResponse::Ok().json(meetings);
     }
 
     // Prepare gRPC request
     let meetings_keys = meetings.iter().map(|m| m.key).collect();
     let req = proto::FetchMeetingsRequest {
-        year,
+        year: params.get_year(),
         keys: meetings_keys,
     };
 
     // Send fetch request to the worker
-    match worker_client.fetch_meetings(req).await {
+    match worker.fetch_meetings(req).await {
         Ok(_) => {
             // Respond with "Accepted" status to indicate the request is being process
-            HttpResponse::Accepted().json(meetings)
+            HttpResponse::Accepted().body("[]")
         }
         Err(err) => {
             error!(error = ?err, "Failed to execute gRPC request");
@@ -109,7 +113,7 @@ fn prepare_query(params: &MeetingsParams) -> SelectQuery<Meeting> {
     // Add 'filters' to the query
     query_builder.add_filter(
         (Meeting::SQL_TABLE, "year"),
-        SqlType::Int(utils::get_year(params.year)),
+        SqlType::Int(params.get_year()),
     );
 
     query_builder
