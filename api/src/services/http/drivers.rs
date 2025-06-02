@@ -7,7 +7,7 @@ use serde::Deserialize;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
-use metrics_one_models::{Driver, DriversImages, Team};
+use crate::models::{Driver, DriversImages, Team};
 
 use crate::{
     AppState,

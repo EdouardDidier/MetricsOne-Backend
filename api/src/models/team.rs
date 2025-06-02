@@ -2,7 +2,7 @@ use metrics_one_macros::SqlNames;
 use serde::{Deserialize, Serialize};
 use sqlx::{self, FromRow, prelude::Type, types::Json};
 
-use crate::{Driver, TeamsImages};
+use super::{Driver, TeamsImages};
 
 #[derive(Serialize, Deserialize, FromRow, SqlNames, Type)]
 #[sql_names(table_name = "teams")]

@@ -1,8 +1,8 @@
-use metrics_one_models::{Meeting, Session};
 use metrics_one_proto::{proto, utils::timestamp_to_datetime};
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
+use crate::models::{Meeting, Session};
 use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;

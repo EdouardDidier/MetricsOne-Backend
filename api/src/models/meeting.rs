@@ -2,7 +2,7 @@ use metrics_one_macros::SqlNames;
 use serde::{Deserialize, Serialize};
 use sqlx::{self, FromRow, types::Json};
 
-use crate::Session;
+use super::Session;
 
 #[derive(Serialize, Deserialize, FromRow, SqlNames)]
 #[sql_names(table_name = "meetings")]

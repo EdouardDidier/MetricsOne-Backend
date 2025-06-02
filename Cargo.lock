@@ -1535,7 +1535,6 @@ dependencies = [
  "config",
  "dotenv",
  "metrics_one_macros",
- "metrics_one_models",
  "metrics_one_proto",
  "metrics_one_utils",
  "once_cell",
@@ -1555,16 +1554,6 @@ version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
-]
-
-[[package]]
-name = "metrics_one_models"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "metrics_one_macros",
- "serde",
- "sqlx",
 ]
 
 [[package]]
@@ -1601,7 +1590,6 @@ dependencies = [
  "chrono",
  "config",
  "dotenv",
- "metrics_one_models",
  "metrics_one_proto",
  "metrics_one_utils",
  "once_cell",

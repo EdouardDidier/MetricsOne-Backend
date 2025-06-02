@@ -1,17 +1,9 @@
 [workspace]
 resolver = "3"
-members = [
-  "api",
-  "worker",
-  "common/proto",
-  "common/models",
-  "common/utils",
-  "common/macros",
-]
+members = ["api", "worker", "common/proto", "common/utils", "common/macros"]
 
 [workspace.dependencies]
 metrics_one_proto = { path = "./common/proto" }
-metrics_one_models = { path = "./common/models" }
 metrics_one_macros = { path = "./common/macros" }
 metrics_one_utils = { path = "./common/utils" }
 tokio = { version = "1", features = ["full"] }

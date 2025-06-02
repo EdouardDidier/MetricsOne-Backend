@@ -2,7 +2,6 @@ use actix_web::{
     HttpResponse, Responder, get,
     web::{self, Data},
 };
-use metrics_one_models::{Driver, Team, TeamsImages};
 use metrics_one_utils::utils;
 use serde::Deserialize;
 use sqlx::Execute;
@@ -10,6 +9,7 @@ use tracing::{debug, error, info, instrument, trace};
 
 use crate::{
     AppState,
+    models::{Driver, Team, TeamsImages},
     services::query_preparer::{
         SqlType,
         select::{JoinRow, JoinType, RowType, SelectQuery},

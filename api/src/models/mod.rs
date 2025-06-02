@@ -9,7 +9,3 @@ pub use images::*;
 pub use meeting::*;
 pub use session::*;
 pub use team::*;
-
-pub trait QueryParams<'q> {
-    fn get_expands(&'q self) -> Vec<&'q str>;
-}
