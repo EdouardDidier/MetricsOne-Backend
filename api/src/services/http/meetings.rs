@@ -1,6 +1,10 @@
 use crate::{
     AppState,
-    services::query_preparer::{SqlType, select::SelectQuery},
+    models::Session,
+    services::query_preparer::{
+        SqlType,
+        select::{JoinRow, JoinType, RowType, SelectQuery},
+    },
 };
 use actix_web::{
     HttpResponse, Responder, get,
@@ -21,6 +25,7 @@ use crate::models::Meeting;
 #[derive(Debug, Clone, Deserialize)]
 struct MeetingsParams {
     pub year: Option<i32>,
+    pub expand: Option<String>,
 }
 
 impl MeetingsParams {
@@ -34,6 +39,15 @@ impl MeetingsParams {
             }
         }
     }
+
+    pub fn get_expands<'q>(&'q self) -> Vec<&'q str> {
+        if let Some(expands) = &self.expand {
+            return expands.split(",").collect();
+        }
+
+        // Dafault to an empty vector
+        Vec::new()
+    }
 }
 
 /* /////////////////////// */
@@ -41,9 +55,14 @@ impl MeetingsParams {
 /* /////////////////////// */
 
 #[get("/{year}/meetings")]
-async fn fetch_meetings(state: Data<AppState>, path: web::Path<i32>) -> impl Responder {
+async fn fetch_meetings(
+    state: Data<AppState>,
+    info: web::Query<MeetingsParams>,
+    path: web::Path<i32>,
+) -> impl Responder {
     let params = MeetingsParams {
         year: Some(path.into_inner()),
+        ..info.into_inner()
     };
     let mut worker = state.worker.clone();
 
@@ -106,6 +125,25 @@ fn prepare_query(params: &MeetingsParams) -> SelectQuery<Meeting> {
     // Start to prepare the query
     let mut query_builder =
         SelectQuery::<Meeting>::new(Meeting::SQL_TABLE, Vec::from(Meeting::SQL_FIELDS));
+
+    // Add 'expands' to the query
+    let expands = params.get_expands();
+    for exp in expands {
+        match exp {
+            "sessions" => query_builder.add_join(
+                JoinType::LeftJoin,
+                JoinRow::new(
+                    RowType::AggBy(Meeting::SQL_TABLE, "id"),
+                    Session::SQL_TABLE,
+                    Vec::from(Session::SQL_FIELDS),
+                    "sessions",
+                ),
+                (Meeting::SQL_TABLE, "key"),
+                (Session::SQL_TABLE, "meeting_key"),
+            ),
+            _ => (),
+        }
+    }
 
     // Add 'filters' to the query
     query_builder.add_filter(
