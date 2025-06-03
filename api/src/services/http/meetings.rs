@@ -92,8 +92,8 @@ async fn fetch_meetings(
         }
     };
 
-    // If meetings are found in the database,
-    if meetings.len() > 1 {
+    // If meetings are found in the database, send fetched data
+    if meetings.len() > 0 {
         return HttpResponse::Ok().json(meetings);
     }
 
