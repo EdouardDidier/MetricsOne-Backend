@@ -24,6 +24,8 @@ use crate::models::Meeting;
 
 #[derive(Debug, Clone, Deserialize)]
 struct MeetingsParams {
+    pub key: Option<i32>,
+    pub location: Option<String>,
     pub year: Option<i32>,
     pub expand: Option<String>,
 }
@@ -150,6 +152,17 @@ fn prepare_query(params: &MeetingsParams) -> SelectQuery<Meeting> {
         (Meeting::SQL_TABLE, "year"),
         SqlType::Int(params.get_year()),
     );
+
+    if let Some(key) = params.key {
+        query_builder.add_filter((Meeting::SQL_TABLE, "key"), SqlType::Int(key));
+    }
+
+    if let Some(location) = &params.location {
+        query_builder.add_filter(
+            (Meeting::SQL_TABLE, "location"),
+            SqlType::Text(location.clone()),
+        );
+    }
 
     query_builder
 }
