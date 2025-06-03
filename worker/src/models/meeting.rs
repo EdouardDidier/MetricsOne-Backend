@@ -29,24 +29,7 @@ impl From<Meetings> for InsertMeetingsRequest {
                 .meetings
                 .into_iter()
                 .map(move |m| {
-                    let sessions = m
-                        .sessions
-                        .into_iter()
-                        .map(move |s| proto::insert_meetings_request::meeting::Session {
-                            key: s.key,
-                            kind: s.kind,
-                            name: s.name,
-                            start_date: s.start_date.map(|mut t| {
-                                t.seconds -= s.gmt_offset;
-                                t
-                            }),
-                            end_date: s.end_date.map(|mut t| {
-                                t.seconds -= s.gmt_offset;
-                                t
-                            }),
-                            path: s.path,
-                        })
-                        .collect();
+                    let sessions = m.sessions.into_iter().map(|s| s.into()).collect();
 
                     proto::insert_meetings_request::Meeting {
                         key: m.key,

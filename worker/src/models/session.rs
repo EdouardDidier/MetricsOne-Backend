@@ -1,3 +1,4 @@
+use metrics_one_proto::proto;
 use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
 
@@ -23,4 +24,23 @@ pub struct Session {
     pub gmt_offset: i64,
 
     pub path: String,
+}
+
+impl From<Session> for proto::insert_meetings_request::meeting::Session {
+    fn from(s: Session) -> Self {
+        proto::insert_meetings_request::meeting::Session {
+            key: s.key,
+            kind: s.kind,
+            name: s.name,
+            start_date: s.start_date.map(|mut t| {
+                t.seconds -= s.gmt_offset;
+                t
+            }),
+            end_date: s.end_date.map(|mut t| {
+                t.seconds -= s.gmt_offset;
+                t
+            }),
+            path: s.path,
+        }
+    }
 }
