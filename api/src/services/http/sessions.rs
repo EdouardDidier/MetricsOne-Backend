@@ -1,6 +1,6 @@
 use crate::{
     AppState,
-    services::query_preparer::{SqlType, select::SelectQuery},
+    services::query_preparer::{SqlOperator, SqlType, select::SelectQuery},
 };
 use actix_web::{
     HttpResponse, Responder, get,
@@ -70,12 +70,17 @@ fn prepare_query(params: &SessionsParams) -> SelectQuery<Session> {
 
     // Add 'filters' to the query
     if let Some(key) = params.key {
-        query_builder.add_filter((Session::SQL_TABLE, "key"), SqlType::Int(key));
+        query_builder.add_filter(
+            (Session::SQL_TABLE, "key"),
+            SqlOperator::Eq,
+            SqlType::Int(key),
+        );
     }
 
     if let Some(meeting_key) = params.meeting {
         query_builder.add_filter(
             (Session::SQL_TABLE, "meeting_key"),
+            SqlOperator::Eq,
             SqlType::Int(meeting_key),
         );
     }

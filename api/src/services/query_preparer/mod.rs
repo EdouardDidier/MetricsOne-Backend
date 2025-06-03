@@ -9,3 +9,12 @@ pub enum SqlType {
     Text(String),
     Timestamp(DateTime<Utc>),
 }
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub enum SqlOperator {
+    Eq,
+    Sup,
+    Inf,
+    ILike,
+}

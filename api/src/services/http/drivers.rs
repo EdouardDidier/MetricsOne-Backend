@@ -7,7 +7,10 @@ use serde::Deserialize;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
-use crate::models::{Driver, DriversImages, Team};
+use crate::{
+    models::{Driver, DriversImages, Team},
+    services::query_preparer::SqlOperator,
+};
 
 use crate::{
     AppState,
@@ -165,11 +168,16 @@ fn prepare_query(params: &DriversParams) -> SelectQuery<Driver> {
     // Add 'filters' to the query
     query_builder.add_filter(
         (Driver::SQL_TABLE, "year"),
+        SqlOperator::Eq,
         SqlType::Int(utils::get_year(params.year)),
     );
 
     if let Some(name) = &params.name {
-        query_builder.add_filter((Driver::SQL_TABLE, "url"), SqlType::Text(name.clone()));
+        query_builder.add_filter(
+            (Driver::SQL_TABLE, "url"),
+            SqlOperator::Eq,
+            SqlType::Text(name.clone()),
+        );
     }
 
     query_builder

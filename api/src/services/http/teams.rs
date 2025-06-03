@@ -11,7 +11,7 @@ use crate::{
     AppState,
     models::{Driver, Team, TeamsImages},
     services::query_preparer::{
-        SqlType,
+        SqlOperator, SqlType,
         select::{JoinRow, JoinType, RowType, SelectQuery},
     },
 };
@@ -163,11 +163,16 @@ fn prepare_query(params: &TeamsParams) -> SelectQuery<Team> {
     // Add 'filters' to the query
     query_builder.add_filter(
         (Team::SQL_TABLE, "year"),
+        SqlOperator::Eq,
         SqlType::Int(utils::get_year(params.year)),
     );
 
     if let Some(name) = &params.name {
-        query_builder.add_filter((Team::SQL_TABLE, "url"), SqlType::Text(name.clone()));
+        query_builder.add_filter(
+            (Team::SQL_TABLE, "url"),
+            SqlOperator::Eq,
+            SqlType::Text(name.clone()),
+        );
     }
 
     query_builder

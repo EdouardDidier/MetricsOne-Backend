@@ -2,7 +2,7 @@ use crate::{
     AppState,
     models::Session,
     services::query_preparer::{
-        SqlType,
+        SqlOperator, SqlType,
         select::{JoinRow, JoinType, RowType, SelectQuery},
     },
 };
@@ -157,16 +157,22 @@ fn prepare_query(params: &MeetingsParams) -> SelectQuery<Meeting> {
     // Add 'filters' to the query
     query_builder.add_filter(
         (Meeting::SQL_TABLE, "year"),
+        SqlOperator::Eq,
         SqlType::Int(params.get_year()),
     );
 
     if let Some(key) = params.key {
-        query_builder.add_filter((Meeting::SQL_TABLE, "key"), SqlType::Int(key));
+        query_builder.add_filter(
+            (Meeting::SQL_TABLE, "key"),
+            SqlOperator::Eq,
+            SqlType::Int(key),
+        );
     }
 
     if let Some(location) = &params.location {
         query_builder.add_filter(
             (Meeting::SQL_TABLE, "location"),
+            SqlOperator::Eq,
             SqlType::Text(location.clone()),
         );
     }

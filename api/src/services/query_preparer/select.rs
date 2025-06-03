@@ -6,7 +6,7 @@ use sqlx::{
     query::QueryAs,
 };
 
-use super::SqlType;
+use super::{SqlOperator, SqlType};
 
 #[derive(Clone)]
 pub struct SqlKey {
@@ -45,6 +45,7 @@ impl Joinable for [SqlKey] {
 #[derive(Clone)]
 pub struct SqlFilter {
     key: SqlKey,
+    operator: SqlOperator,
     value: SqlType,
 }
 
@@ -147,9 +148,10 @@ where
         });
     }
 
-    pub fn add_filter(&mut self, key: (&str, &str), value: SqlType) {
+    pub fn add_filter(&mut self, key: (&str, &str), operator: SqlOperator, value: SqlType) {
         self.filter.push(SqlFilter {
             key: SqlKey::new(key),
+            operator,
             value,
         });
     }
@@ -213,13 +215,24 @@ where
 
             let mut it = self.filter.iter().peekable();
             while let Some(f) = it.next() {
-                self.query_builder.push(format!("{}=", f.key));
+                self.query_builder.push(format!("{}", f.key));
+
+                // Add operator type
+                match &f.operator {
+                    SqlOperator::Eq => self.query_builder.push("="),
+                    SqlOperator::Sup => self.query_builder.push(">"),
+                    SqlOperator::Inf => self.query_builder.push("<"),
+                    SqlOperator::ILike => self.query_builder.push(" ILIKE "),
+                };
+
+                // Add value to compare to
                 match &f.value {
                     SqlType::Int(v) => self.query_builder.push_bind(v.clone()),
                     SqlType::Text(v) => self.query_builder.push_bind(v.clone()),
                     SqlType::Timestamp(v) => self.query_builder.push_bind(v.clone()),
                 };
 
+                // If not last element, add 'and' statement
                 if it.peek().is_some() {
                     self.query_builder.push(" AND ");
                 }
