@@ -44,7 +44,6 @@ async fn fetch_job(
     if !res.status().is_success() {
         return Err("Failed to fetch data from Livetiming API".into());
     }
-
     trace!("Data fetched in {:?}", time.elapsed());
 
     // Parse data from json
@@ -52,14 +51,11 @@ async fn fetch_job(
     let meetings_response: Meetings =
         serde_json::from_str(text.trim_start_matches('\u{feff}').trim())?;
 
-    // TODO: convert start and end date witn offset in the 'into' implementation
     let mut meetings: InsertMeetingsRequest = meetings_response.into();
-
     trace!("Data parsed in {:?}", time.elapsed());
 
     // Prepare meetings to be sent to API service for insertion
     meetings.meetings.retain(|m| !params.keys.contains(&m.key));
-
     trace!("Data processed in {:?}", time.elapsed());
 
     let nb_new_entry = meetings.meetings.len();
@@ -70,7 +66,6 @@ async fn fetch_job(
 
     //Send request for processing to API
     trace!("Send {} new entries to API for insertion", nb_new_entry);
-
     api_client.insert_meetings(meetings).await?;
 
     info!(
