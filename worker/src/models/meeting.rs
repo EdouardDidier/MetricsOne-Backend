@@ -18,8 +18,7 @@ pub struct Meeting {
     pub location: String,
     pub official_name: String,
     pub name: String,
-
-    pub sessions: Option<Vec<Session>>,
+    pub sessions: Vec<Session>,
 }
 
 impl From<Meetings> for InsertMeetingsRequest {
@@ -32,14 +31,19 @@ impl From<Meetings> for InsertMeetingsRequest {
                 .map(move |m| {
                     let sessions = m
                         .sessions
-                        .unwrap() //TODO: Handle error properly
                         .into_iter()
                         .map(move |s| proto::insert_meetings_request::meeting::Session {
                             key: s.key,
                             kind: s.kind,
                             name: s.name,
-                            start_date: s.start_date,
-                            end_date: s.end_date,
+                            start_date: s.start_date.map(|mut t| {
+                                t.seconds -= s.gmt_offset;
+                                t
+                            }),
+                            end_date: s.end_date.map(|mut t| {
+                                t.seconds -= s.gmt_offset;
+                                t
+                            }),
                             path: s.path,
                         })
                         .collect();

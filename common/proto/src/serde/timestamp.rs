@@ -27,14 +27,11 @@ where
     let s: String = Deserialize::deserialize(deserializer)?;
 
     // Format the string to the correct format
-    let mut fixed = if s.len() == 6 {
-        format!("1970-01-01T{}", s)
+    let fixed = if !s.ends_with('Z') {
+        format!("{}Z", s)
     } else {
         s
     };
-    if !fixed.ends_with('Z') {
-        fixed.push('Z');
-    }
 
     // Parse as chrono::DateTime<Utc>
     let dt = DateTime::parse_from_rfc3339(&fixed)
