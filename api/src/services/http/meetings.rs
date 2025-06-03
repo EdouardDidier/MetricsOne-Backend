@@ -99,6 +99,13 @@ async fn fetch_meetings(
         return HttpResponse::Ok().json(meetings);
     }
 
+    // If there are no meetings and filters parameters,
+    // It might just be a bad filter,
+    // Then, it doesn't trigger a fetch job and return an empty JSON
+    if params.key.is_some() || params.location.is_some() {
+        return HttpResponse::Ok().json(serde_json::json!([]));
+    }
+
     // Prepare gRPC request
     let meetings_keys = meetings.iter().map(|m| m.key).collect();
     let req = proto::FetchMeetingsRequest {
