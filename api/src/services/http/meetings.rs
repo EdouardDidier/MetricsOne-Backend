@@ -172,7 +172,7 @@ fn prepare_query(params: &MeetingsParams) -> SelectQuery<Meeting> {
     if let Some(location) = &params.location {
         query_builder.add_filter(
             (Meeting::SQL_TABLE, "location"),
-            SqlOperator::Eq,
+            SqlOperator::ILike,
             SqlType::Text(location.clone()),
         );
     }
