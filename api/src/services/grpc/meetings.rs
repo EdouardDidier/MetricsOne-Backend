@@ -13,7 +13,9 @@ pub async fn insert(
     request: tonic::Request<proto::InsertMeetingsRequest>,
 ) -> Result<tonic::Response<proto::InsertMeetingsResponse>, tonic::Status> {
     let year = request.get_ref().year;
-    let meetings = &request.get_ref().meetings;
+    let meetings = request.into_inner().meetings;
+
+    let nb_meetings = meetings.len();
 
     debug!("Request received with {} insertions", meetings.len());
     let time = std::time::Instant::now();
@@ -30,15 +32,15 @@ pub async fn insert(
     let mut sessions_query = InsertQuery::new(Session::SQL_TABLE, Vec::from(Session::SQL_FIELDS));
 
     // TODO: use move statement and into_iter() to avoid data cloning
-    for m in meetings {
+    for m in meetings.into_iter() {
         let mut meetings_values = Vec::new();
 
         // TODO: Order matter here, change so it doesn't depend on order
         meetings_values.push(SqlType::Int(m.key));
         meetings_values.push(SqlType::Int(m.number));
-        meetings_values.push(SqlType::Text(m.location.clone()));
-        meetings_values.push(SqlType::Text(m.official_name.clone()));
-        meetings_values.push(SqlType::Text(m.name.clone()));
+        meetings_values.push(SqlType::Text(m.location));
+        meetings_values.push(SqlType::Text(m.official_name));
+        meetings_values.push(SqlType::Text(m.name));
         meetings_values.push(SqlType::Int(year));
 
         if let Err(err) = meetings_query.add_values(meetings_values) {
@@ -47,7 +49,7 @@ pub async fn insert(
             return Err(tonic::Status::internal(message));
         }
 
-        for s in m.sessions.iter() {
+        for s in m.sessions.into_iter() {
             let mut sessions_values = Vec::new();
 
             // TODO: Handle errors properly
@@ -56,11 +58,11 @@ pub async fn insert(
 
             // TODO: Order matter here, change so it doesn't depend on order
             sessions_values.push(SqlType::Int(s.key));
-            sessions_values.push(SqlType::Text(s.kind.clone()));
-            sessions_values.push(SqlType::Text(s.name.clone()));
+            sessions_values.push(SqlType::Text(s.kind));
+            sessions_values.push(SqlType::Text(s.name));
             sessions_values.push(SqlType::Timestamp(start_date));
             sessions_values.push(SqlType::Timestamp(end_date));
-            sessions_values.push(SqlType::Text(s.path.clone()));
+            sessions_values.push(SqlType::Text(s.path));
             sessions_values.push(SqlType::Int(m.key));
 
             if let Err(err) = sessions_query.add_values(sessions_values) {
@@ -94,7 +96,7 @@ pub async fn insert(
     //TODO: Add info on the number of sessions added
     info!(
         "Inserted {} 'meetings' successfully in {:?}",
-        meetings.len(),
+        nb_meetings,
         time.elapsed()
     );
 
