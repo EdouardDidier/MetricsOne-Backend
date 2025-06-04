@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use metrics_one_proto::{proto, utils::timestamp_to_datetime};
+use prost_types::Timestamp;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
@@ -7,13 +9,29 @@ use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;
 
+/* ///////////////////// */
+/* //// gRPC Helper //// */
+/* ///////////////////// */
+
+fn process_date(s: &Option<Timestamp>) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+    let ts = &s.ok_or("Missing timestamp")?;
+    timestamp_to_datetime(ts)
+}
+
+/* /////////////////////// */
+/* //// gRPC Handlers //// */
+/* /////////////////////// */
+
 #[instrument(name = "[gRPC Handler] Insert Meetings", skip_all)]
 pub async fn insert(
     handler: &InsertServiceHandler,
     request: tonic::Request<proto::InsertMeetingsRequest>,
 ) -> Result<tonic::Response<proto::InsertMeetingsResponse>, tonic::Status> {
     let year = request.get_ref().year;
-    let meetings = &request.get_ref().meetings;
+    let meetings = request.into_inner().meetings;
+
+    let nb_meetings = meetings.len();
+    let mut nb_sessions = 0;
 
     debug!("Request received with {} insertions", meetings.len());
     let time = std::time::Instant::now();
@@ -29,16 +47,15 @@ pub async fn insert(
     let mut meetings_query = InsertQuery::new(Meeting::SQL_TABLE, Vec::from(Meeting::SQL_FIELDS));
     let mut sessions_query = InsertQuery::new(Session::SQL_TABLE, Vec::from(Session::SQL_FIELDS));
 
-    // TODO: use move statement and into_iter() to avoid data cloning
-    for m in meetings {
+    for m in meetings.into_iter() {
         let mut meetings_values = Vec::new();
 
-        // TODO: Order matter here, change so it doesn't depend on order
+        // Order should be the same as 'SQL_FIELDS'
         meetings_values.push(SqlType::Int(m.key));
         meetings_values.push(SqlType::Int(m.number));
-        meetings_values.push(SqlType::Text(m.location.clone()));
-        meetings_values.push(SqlType::Text(m.official_name.clone()));
-        meetings_values.push(SqlType::Text(m.name.clone()));
+        meetings_values.push(SqlType::Text(m.location));
+        meetings_values.push(SqlType::Text(m.official_name));
+        meetings_values.push(SqlType::Text(m.name));
         meetings_values.push(SqlType::Int(year));
 
         if let Err(err) = meetings_query.add_values(meetings_values) {
@@ -47,20 +64,36 @@ pub async fn insert(
             return Err(tonic::Status::internal(message));
         }
 
-        for s in m.sessions.iter() {
+        nb_sessions += m.sessions.len();
+
+        for s in m.sessions.into_iter() {
             let mut sessions_values = Vec::new();
 
-            // TODO: Handle errors properly
-            let start_date = timestamp_to_datetime(&s.start_date.unwrap()).unwrap();
-            let end_date = timestamp_to_datetime(&s.end_date.unwrap()).unwrap();
+            let start_date = match process_date(&s.start_date) {
+                Ok(res) => res,
+                Err(err) => {
+                    let message = "Failed to parse timestamp";
+                    error!(error = ?err, message);
+                    return Err(tonic::Status::internal(message));
+                }
+            };
 
-            // TODO: Order matter here, change so it doesn't depend on order
+            let end_date = match process_date(&s.end_date) {
+                Ok(res) => res,
+                Err(err) => {
+                    let message = "Failed to parse timestamp";
+                    error!(error = ?err, message);
+                    return Err(tonic::Status::internal(message));
+                }
+            };
+
+            // Order should be the same as 'SQL_FIELDS'
             sessions_values.push(SqlType::Int(s.key));
-            sessions_values.push(SqlType::Text(s.kind.clone()));
-            sessions_values.push(SqlType::Text(s.name.clone()));
+            sessions_values.push(SqlType::Text(s.kind));
+            sessions_values.push(SqlType::Text(s.name));
             sessions_values.push(SqlType::Timestamp(start_date));
             sessions_values.push(SqlType::Timestamp(end_date));
-            sessions_values.push(SqlType::Text(s.path.clone()));
+            sessions_values.push(SqlType::Text(s.path));
             sessions_values.push(SqlType::Int(m.key));
 
             if let Err(err) = sessions_query.add_values(sessions_values) {
@@ -91,10 +124,10 @@ pub async fn insert(
         return Err(tonic::Status::internal(message));
     }
 
-    //TODO: Add info on the number of sessions added
     info!(
-        "Inserted {} 'meetings' successfully in {:?}",
-        meetings.len(),
+        "Inserted {} meetings and {} sessions successfully in {:?}",
+        nb_meetings,
+        nb_sessions,
         time.elapsed()
     );
 
