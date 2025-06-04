@@ -16,6 +16,7 @@ pub async fn insert(
     let meetings = request.into_inner().meetings;
 
     let nb_meetings = meetings.len();
+    let mut nb_sessions = 0;
 
     debug!("Request received with {} insertions", meetings.len());
     let time = std::time::Instant::now();
@@ -31,7 +32,6 @@ pub async fn insert(
     let mut meetings_query = InsertQuery::new(Meeting::SQL_TABLE, Vec::from(Meeting::SQL_FIELDS));
     let mut sessions_query = InsertQuery::new(Session::SQL_TABLE, Vec::from(Session::SQL_FIELDS));
 
-    // TODO: use move statement and into_iter() to avoid data cloning
     for m in meetings.into_iter() {
         let mut meetings_values = Vec::new();
 
@@ -48,6 +48,8 @@ pub async fn insert(
             error!(error = ?err, message);
             return Err(tonic::Status::internal(message));
         }
+
+        nb_sessions += m.sessions.len();
 
         for s in m.sessions.into_iter() {
             let mut sessions_values = Vec::new();
@@ -93,10 +95,10 @@ pub async fn insert(
         return Err(tonic::Status::internal(message));
     }
 
-    //TODO: Add info on the number of sessions added
     info!(
-        "Inserted {} 'meetings' successfully in {:?}",
+        "Inserted {} meetings and {} sessions successfully in {:?}",
         nb_meetings,
+        nb_sessions,
         time.elapsed()
     );
 
