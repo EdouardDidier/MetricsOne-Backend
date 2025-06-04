@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use metrics_one_proto::{proto, utils::timestamp_to_datetime};
+use prost_types::Timestamp;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
 
@@ -6,6 +8,19 @@ use crate::models::{Meeting, Session};
 use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;
+
+/* ///////////////////// */
+/* //// gRPC Helper //// */
+/* ///////////////////// */
+
+fn process_date(s: &Option<Timestamp>) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+    let ts = &s.ok_or("Missing timestamp")?;
+    timestamp_to_datetime(ts)
+}
+
+/* /////////////////////// */
+/* //// gRPC Handlers //// */
+/* /////////////////////// */
 
 #[instrument(name = "[gRPC Handler] Insert Meetings", skip_all)]
 pub async fn insert(
@@ -35,7 +50,7 @@ pub async fn insert(
     for m in meetings.into_iter() {
         let mut meetings_values = Vec::new();
 
-        // TODO: Order matter here, change so it doesn't depend on order
+        // Order should be the same as 'SQL_FIELDS'
         meetings_values.push(SqlType::Int(m.key));
         meetings_values.push(SqlType::Int(m.number));
         meetings_values.push(SqlType::Text(m.location));
@@ -54,11 +69,25 @@ pub async fn insert(
         for s in m.sessions.into_iter() {
             let mut sessions_values = Vec::new();
 
-            // TODO: Handle errors properly
-            let start_date = timestamp_to_datetime(&s.start_date.unwrap()).unwrap();
-            let end_date = timestamp_to_datetime(&s.end_date.unwrap()).unwrap();
+            let start_date = match process_date(&s.start_date) {
+                Ok(res) => res,
+                Err(err) => {
+                    let message = "Failed to parse timestamp";
+                    error!(error = ?err, message);
+                    return Err(tonic::Status::internal(message));
+                }
+            };
 
-            // TODO: Order matter here, change so it doesn't depend on order
+            let end_date = match process_date(&s.end_date) {
+                Ok(res) => res,
+                Err(err) => {
+                    let message = "Failed to parse timestamp";
+                    error!(error = ?err, message);
+                    return Err(tonic::Status::internal(message));
+                }
+            };
+
+            // Order should be the same as 'SQL_FIELDS'
             sessions_values.push(SqlType::Int(s.key));
             sessions_values.push(SqlType::Text(s.kind));
             sessions_values.push(SqlType::Text(s.name));
