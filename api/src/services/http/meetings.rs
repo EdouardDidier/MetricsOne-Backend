@@ -14,7 +14,7 @@ use chrono::Datelike;
 use metrics_one_proto::proto::{self};
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::{debug, error, info, trace};
+use tracing::{debug, error, info, instrument, trace};
 
 use crate::models::Meeting;
 
