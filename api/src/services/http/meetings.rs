@@ -55,7 +55,7 @@ impl MeetingsParams {
 /* /////////////////////// */
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
-
+#[instrument(name = "[HTTP Handler] GET /meetings", skip_all)]
 #[get("/{year}/meetings")]
 async fn fetch_meetings(
     state: Data<AppState>,
