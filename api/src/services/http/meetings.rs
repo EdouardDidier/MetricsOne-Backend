@@ -95,7 +95,9 @@ async fn fetch_meetings(
     };
 
     // If meetings are found in the database, send fetched data
-    if meetings.len() > 0 {
+    // But if it's current year, new data might be availaible
+    // So we will send the result later and send a request to fetch new data
+    if meetings.len() > 0 && params.get_year() != chrono::Utc::now().year() {
         return HttpResponse::Ok().json(meetings);
     }
 
@@ -116,12 +118,17 @@ async fn fetch_meetings(
     // Send fetch request to the worker
     match worker.fetch_meetings(req).await {
         Ok(_) => {
+            // If we fetched meetings earlier, send data as a response
+            if meetings.len() > 0 {
+                return HttpResponse::Ok().json(meetings);
+            }
+
             // Respond with "Accepted" status to indicate the request is being process
             HttpResponse::Accepted().json(serde_json::json!([]))
         }
         Err(err) => {
             error!(error = ?err, "Failed to execute gRPC request");
-            HttpResponse::InternalServerError().json(serde_json::json!([]))
+            HttpResponse::Ok().json(meetings)
         }
     }
 }

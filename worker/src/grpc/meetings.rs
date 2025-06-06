@@ -19,10 +19,12 @@ pub async fn fetch(
 
     let api_client = (*handler.api).clone();
 
+    // Start async fetch job
     tokio::spawn(async move {
         let _ = fetch_job(api_client, params).await;
     });
 
+    // Send response to indicate that fetch job started
     Ok(tonic::Response::new(proto::FetchMeetingsResponse {}))
 }
 
