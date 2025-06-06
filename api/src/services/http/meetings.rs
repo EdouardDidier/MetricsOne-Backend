@@ -96,16 +96,15 @@ async fn fetch_meetings(
 
     // If meetings are found in the database, send fetched data
     // But if it's current year, new data might be availaible
-    // So we will send the result later and send a request to fetch new data
+    // So proceed to send a request to fetch new data
     if meetings.len() > 0 && params.get_year() != chrono::Utc::now().year() {
         return HttpResponse::Ok().json(meetings);
     }
 
-    // If there are no meetings and filters parameters,
-    // It might just be a bad filter,
-    // Then, it doesn't trigger a fetch job and return an empty JSON
+    // If there are filters parameters, it might just be a bad filter
+    // So, it doesn't trigger a fetch job even if there are no meetings
     if params.key.is_some() || params.location.is_some() {
-        return HttpResponse::Ok().json(serde_json::json!([]));
+        return HttpResponse::Ok().json(meetings);
     }
 
     // Prepare gRPC request
