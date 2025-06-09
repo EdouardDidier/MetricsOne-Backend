@@ -20,4 +20,5 @@ serde_json = { workspace = true }
 chrono = { workspace = true }
 prost-types = { workspace = true }
 actix-web = "4.11.0"
+actix-cors = "0.7.1"
 tracing-actix-web = "0.7.18"

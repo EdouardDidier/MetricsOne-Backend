@@ -4,6 +4,7 @@ mod settings;
 
 use std::{sync::Arc, time::Duration};
 
+use actix_cors::Cors;
 use actix_web::{App, HttpServer, web::Data};
 use services::grpc::InsertServiceHandler;
 use settings::ENV;
@@ -102,11 +103,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let http_server_handle = tokio::spawn(
         HttpServer::new(move || {
+            let cors = Cors::default()
+                .allowed_origin("http://localhost:3000")
+                .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                .allowed_headers(vec!["Content-Type"])
+                .supports_credentials();
+
             App::new()
                 .app_data(Data::new(AppState {
                     db: db_pool.clone(),
                     worker: worker_client.clone(),
                 }))
+                .wrap(cors)
                 .service(services::http::fetch_drivers)
                 .service(services::http::fetch_driver_by_name)
                 .service(services::http::fetch_teams)
