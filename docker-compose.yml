@@ -11,9 +11,9 @@ services:
     networks:
       - network
     environment:
-      POSTGRES_DB: metrics-one
-      POSTGRES_USER: api
-      POSTGRES_PASSWORD: MetricsOne
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DBNAME}
     ports:
       - 5432:5432
 
@@ -26,21 +26,21 @@ services:
       - network
     environment:
       - SERVER.HTTP.HOST=0.0.0.0
-      - SERVER.HTTP.PORT=8080
+      - SERVER.HTTP.PORT=${API_HTTP_PORT}
       - SERVER.GRPC.HOST=0.0.0.0
-      - SERVER.GRPC.PORT=50051
-      - DB.USER=api
-      - DB.PASSWORD=MetricsOne
+      - SERVER.GRPC.PORT=${API_GRPC_PORT}
+      - DB.USER=${DB_USER}
+      - DB.PASSWORD=${DB_PASSWORD}
       - DB.HOST=database
       - DB.PORT=5432
-      - DB.DBNAME=metrics-one
-      - DB.POOL_MAX_SIZE=20
+      - DB.DBNAME=${DB_DBNAME}
+      - DB.POOL_MAX_SIZE=${DB_POOL_MAX_SIZE}
       - WORKER.HOST=worker
-      - WORKER.PORT=50052
-      - RUST_LOG=metrics_one_api=debug,metrics_one_common=debug
+      - WORKER.PORT=${WORKER_PORT}
+      - RUST_LOG=${RUST_LOG}
     ports:
-      - 8080:8080
-      - 50051:50051
+      - ${API_HTTP_PORT}:${API_HTTP_PORT} 
+      - ${API_GRPC_PORT}:${API_GRPC_PORT} # Exposed for development
 
   worker:
     container_name: worker
@@ -51,13 +51,13 @@ services:
       - network
     environment:
       - SERVER.HOST=0.0.0.0
-      - SERVER.PORT=50052
+      - SERVER.PORT=${WORKER_PORT}
       - API.HOST=api
-      - API.PORT=50051
-      - LIVETIMING_URL=https://livetiming.formula1.com/static
-      - RUST_LOG=metrics_one_worker=debug,metrics_one_common=debug
+      - API.PORT=${API_GRPC_PORT}
+      - LIVETIMING_URL=${LIVETIMING_URL}
+      - RUST_LOG=${RUST_LOG}
     ports:
-      - 50052:50052 
+      - ${WORKER_PORT}:${WORKER_PORT} # Exposed for development
 
 networks:
   network: 
