@@ -25,10 +25,18 @@ pub struct DbSettings {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct RabbitMqSettings {
+    pub user: String,
+    pub password: String,
+    pub host: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Settings {
-    pub db: DbSettings,
     pub server: ServerSettings,
-    pub worker: HostSettings,
+    pub db: DbSettings,
+    pub rabbitmq: RabbitMqSettings,
     pub rust_log: String,
 }
 

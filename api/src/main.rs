@@ -2,24 +2,22 @@ mod models;
 mod services;
 mod settings;
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, web::Data};
 use services::grpc::InsertServiceHandler;
 use settings::ENV;
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
-use tonic::transport::{Channel, Server};
+use tonic::transport::Server;
 use tracing::{debug, error, info};
 
-use metrics_one_proto::proto::{
-    fetch_service_client::FetchServiceClient, insert_service_server::InsertServiceServer,
-};
-use metrics_one_utils::{grpc::try_get_grpc_client, utils};
+use metrics_one_proto::proto::insert_service_server::InsertServiceServer;
+use metrics_one_utils::utils;
 
 pub struct AppState {
     db: Arc<Pool<Postgres>>,
-    worker: FetchServiceClient<Channel>,
+    rabbitmq: Arc<lapin::Channel>,
 }
 
 #[actix_web::main]
@@ -46,11 +44,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ))
             .await
             .inspect_err(|err| {
-                error!(error = ?err, "Error occured while building database connection pool");
+                error!(error = ?err, "Failed to build database connection pool");
             })?,
     );
 
     info!("Connection to database establised");
+
+    // Connection to RabbitMQ
+    // TODO: Move to its own crate
+    let rabbitmq_addr = format!("{}:{}", ENV.rabbitmq.host, ENV.rabbitmq.port);
+    debug!(
+        "Connection to RabbitMQ on amqp://{} initiated",
+        rabbitmq_addr
+    );
+
+    let rabbitmq_connection = lapin::Connection::connect(
+        &format!(
+            "amqp://{}:{}@{}/%2f",
+            ENV.rabbitmq.user, ENV.rabbitmq.password, rabbitmq_addr
+        ),
+        lapin::ConnectionProperties::default(),
+    )
+    .await
+    .inspect_err(|err| {
+        error!(error = ?err, "Failed to connect to RabbitMQ");
+    })?;
+
+    info!("Connection to RabbitMQ establised");
+
+    // Set up of RabbitMQ channels
+    // TODO: Move to its own crate
+    debug!("Set up of RabbitMQ initiated");
+
+    let rabbitmq_channel = Arc::new(rabbitmq_connection.create_channel().await.inspect_err(
+        |err| {
+            error!(error = ?err, "Failed to create RabbitMQ channel");
+        },
+    )?);
+
+    rabbitmq_channel
+        .queue_declare(
+            "fetch.meetings",
+            lapin::options::QueueDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
+            lapin::types::FieldTable::default(),
+        )
+        .await
+        .inspect_err(|err| {
+            error!(error = ?err, "Failed to declare RabbitMQ queue");
+        })?;
+
+    info!("Set up of RabbitMQ completed");
 
     // Initializing gRPC service
     let shutdown_signal = utils::get_shutdown_signals();
@@ -74,28 +120,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .await
     });
 
-    // Connection to worker with gRPC
-    let worker_addr = format!("http://{}:{}", ENV.worker.host, ENV.worker.port);
-    let worker_client = match try_get_grpc_client(
-        FetchServiceClient::connect,
-        &worker_addr,
-        Duration::from_secs(1),
-    )
-    .await
-    {
-        Some(res) => {
-            info!(
-                "Connection to Worker service established on {}",
-                worker_addr
-            );
-            res
-        }
-        None => {
-            info!("No connection to API service, aborting server startup...");
-            return Ok(());
-        }
-    };
-
     // Starting http service
     let server_http_addr = format!("{}:{}", ENV.server.http.host, ENV.server.http.port);
 
@@ -112,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             App::new()
                 .app_data(Data::new(AppState {
                     db: db_pool.clone(),
-                    worker: worker_client.clone(),
+                    rabbitmq: rabbitmq_channel.clone(),
                 }))
                 .wrap(cors)
                 .service(services::http::fetch_drivers)

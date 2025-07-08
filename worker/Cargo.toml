@@ -6,8 +6,10 @@ edition = "2024"
 [dependencies]
 metrics_one_proto = { path = "../common/proto" }
 metrics_one_utils = { path = "../common/utils" }
-tonic = { workspace = true }
+metrics_one_models = { path = "../common/models" }
 tokio = { workspace = true }
+tonic = { workspace = true }
+lapin = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde = { workspace = true }
@@ -17,6 +19,7 @@ dotenv = { workspace = true }
 config = { workspace = true }
 once_cell = { workspace = true }
 prost-types = { workspace = true }
+tokio-stream = "0.1.17"
 reqwest = { version = "0.12.15", default-features = false, features = [
   "rustls-tls",
   "json",

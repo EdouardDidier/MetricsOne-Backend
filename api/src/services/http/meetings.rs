@@ -11,7 +11,7 @@ use actix_web::{
     web::{self, Data},
 };
 use chrono::Datelike;
-use metrics_one_proto::proto::{self};
+use metrics_one_models::queue;
 use serde::Deserialize;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
@@ -66,7 +66,7 @@ async fn fetch_meetings(
         year: Some(path.into_inner()),
         ..info.into_inner()
     };
-    let mut worker = state.worker.clone();
+    let rabbitmq = state.rabbitmq.clone();
 
     debug!(parameters = ?params, "Request received with");
     let time = std::time::Instant::now();
@@ -107,16 +107,55 @@ async fn fetch_meetings(
         return HttpResponse::Ok().json(meetings);
     }
 
-    // Prepare gRPC request
+    // Prepare RabbitMQ payload
     let meetings_keys = meetings.iter().map(|m| m.key).collect();
-    let req = proto::FetchMeetingsRequest {
+
+    let rabbitmq_payload = queue::Meetings {
         year: params.get_year(),
         keys: meetings_keys,
     };
 
-    // Send fetch request to the worker
-    match worker.fetch_meetings(req).await {
+    // Encode payload into JSON
+    let rabbitmq_body = match serde_json::to_vec(&rabbitmq_payload) {
+        Ok(body) => {
+            trace!("Serialized queue payload in {:?}", time.elapsed());
+            body
+        }
+        Err(err) => {
+            error!(error = ?err, "Failed to serialize queue payload");
+            return HttpResponse::Ok().json(serde_json::json!([]));
+        }
+    };
+
+    // Prepare RabbitMQ request
+    let rabbitmq_request = rabbitmq.basic_publish(
+        "",
+        "fetch.meetings",
+        lapin::options::BasicPublishOptions::default(),
+        &rabbitmq_body,
+        lapin::BasicProperties::default().with_content_type("application/json".into()),
+    );
+
+    // Send fetch request to the queue
+    let rabbitmq_publish = match rabbitmq_request.await {
+        Ok(publish) => {
+            trace!(
+                "Published meetings fetch request to the queue in {:?}",
+                time.elapsed()
+            );
+            publish
+        }
+        Err(err) => {
+            error!(error = ?err, "Failed to publish meetings fetch request to the queue");
+            return HttpResponse::Ok().json(serde_json::json!([]));
+        }
+    };
+
+    // Check if acknowledgement received
+    // TODO: Check if producer acknowledgement is necessary ?
+    match rabbitmq_publish.await {
         Ok(_) => {
+            trace!("Acknowledgement received in {:?}", time.elapsed());
             // If we fetched meetings earlier, send data as a response
             if meetings.len() > 0 {
                 return HttpResponse::Ok().json(meetings);
@@ -126,7 +165,7 @@ async fn fetch_meetings(
             HttpResponse::Accepted().json(serde_json::json!([]))
         }
         Err(err) => {
-            error!(error = ?err, "Failed to execute gRPC request");
+            error!(error = ?err, "Failed to receive queue confirmation");
             HttpResponse::Ok().json(meetings)
         }
     }

@@ -3,21 +3,23 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct ServerSettings {
+pub struct HostSettings {
     pub host: String,
     pub port: u16,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ApiSettings {
+pub struct RabbitMqSettings {
+    pub user: String,
+    pub password: String,
     pub host: String,
     pub port: u16,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
-    pub server: ServerSettings,
-    pub api: ApiSettings,
+    pub rabbitmq: RabbitMqSettings,
+    pub api: HostSettings,
     pub livetiming_url: String,
     pub rust_log: String,
 }
