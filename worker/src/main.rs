@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(payload) => payload,
                     Err(err) => {
                         error!(error = ?err, "Failed to deserialize message payload, discarding message");
-                        if let Err(err) = delivery.nack(lapin::options::BasicNackOptions { requeue: false, ..Default::default() }).await {
+                        if let Err(err) = delivery.nack(lapin::options::BasicNackOptions::default()).await {
                             error!(error = ?err, "Failed to nack message");
                         }
                         continue;
@@ -138,8 +138,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(err) => {
-                        error!(error = ?err, "Failed to process message, requeueing");
-                         if let Err(err) = delivery.nack(lapin::options::BasicNackOptions { requeue: true, ..Default::default() }).await {
+                        error!(error = ?err, "Failed to process message");
+                         if let Err(err) = delivery.nack(lapin::options::BasicNackOptions::default()).await {
                             error!(error = ?err, "Failed to nack message");
                         }
                     }
