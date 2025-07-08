@@ -1,4 +1,3 @@
-use metrics_one_models::queue;
 use metrics_one_proto::proto::{InsertMeetingsRequest, insert_service_client::InsertServiceClient};
 use tracing::{debug, info, instrument, trace};
 
@@ -7,7 +6,7 @@ use crate::{models::Meetings, settings::ENV};
 #[instrument(name = "[Job] Fetch Meetings", skip_all, err)]
 pub async fn fetch_job(
     mut api_client: InsertServiceClient<tonic::transport::Channel>,
-    params: queue::Meetings,
+    params: metrics_one_queue::models::Meetings,
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Fetch Meetings process initiated");
     let time = std::time::Instant::now();

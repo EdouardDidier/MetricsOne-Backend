@@ -5,8 +5,8 @@ edition = "2024"
 
 [dependencies]
 metrics_one_macros = { workspace = true }
-metrics_one_models = { workspace = true }
 metrics_one_proto = { workspace = true }
+metrics_one_queue = { workspace = true }
 metrics_one_utils = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }

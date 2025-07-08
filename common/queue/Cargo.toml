@@ -1,7 +1,9 @@
 [package]
-name = "metrics_one_models"
+name = "metrics_one_queue"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+lapin = { workspace = true }
+tracing = { workspace = true }
 serde = { workspace = true }

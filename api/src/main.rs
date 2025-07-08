@@ -51,52 +51,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Connection to database establised");
 
     // Connection to RabbitMQ
-    // TODO: Move to its own crate
     let rabbitmq_addr = format!("{}:{}", ENV.rabbitmq.host, ENV.rabbitmq.port);
-    debug!(
-        "Connection to RabbitMQ on amqp://{} initiated",
-        rabbitmq_addr
-    );
-
-    let rabbitmq_connection = lapin::Connection::connect(
-        &format!(
-            "amqp://{}:{}@{}/%2f",
-            ENV.rabbitmq.user, ENV.rabbitmq.password, rabbitmq_addr
-        ),
-        lapin::ConnectionProperties::default(),
-    )
-    .await
-    .inspect_err(|err| {
-        error!(error = ?err, "Failed to connect to RabbitMQ");
-    })?;
-
-    info!("Connection to RabbitMQ establised");
-
-    // Set up of RabbitMQ channels
-    // TODO: Move to its own crate
-    debug!("Set up of RabbitMQ initiated");
-
-    let rabbitmq_channel = Arc::new(rabbitmq_connection.create_channel().await.inspect_err(
-        |err| {
-            error!(error = ?err, "Failed to create RabbitMQ channel");
-        },
-    )?);
-
-    rabbitmq_channel
-        .queue_declare(
+    let rabbitmq_channel = Arc::new(
+        match metrics_one_queue::get_rabbitmq_channel(
+            &rabbitmq_addr,
+            &ENV.rabbitmq.user,
+            &ENV.rabbitmq.password,
             &ENV.rabbitmq.queue,
-            lapin::options::QueueDeclareOptions {
-                durable: true,
-                ..Default::default()
-            },
-            lapin::types::FieldTable::default(),
         )
         .await
-        .inspect_err(|err| {
-            error!(error = ?err, "Failed to declare RabbitMQ queue");
-        })?;
-
-    info!("Set up of RabbitMQ completed");
+        {
+            Ok(res) => {
+                info!("Connection to RabbitMQ established on {}", rabbitmq_addr);
+                res
+            }
+            Err(err) => {
+                error!(error = ?err, "Failed to connect to RabbitMQ");
+                return Err(err.into());
+            }
+        },
+    );
 
     // Initializing gRPC service
     let shutdown_signal = utils::get_shutdown_signals();

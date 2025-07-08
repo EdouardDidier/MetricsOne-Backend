@@ -2078,8 +2078,8 @@ dependencies = [
  "dotenv",
  "lapin",
  "metrics_one_macros",
- "metrics_one_models",
  "metrics_one_proto",
+ "metrics_one_queue",
  "metrics_one_utils",
  "once_cell",
  "prost-types",
@@ -2102,13 +2102,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "metrics_one_models"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "metrics_one_proto"
 version = "0.1.0"
 dependencies = [
@@ -2121,6 +2114,15 @@ dependencies = [
  "sqlx",
  "tonic",
  "tonic-build",
+]
+
+[[package]]
+name = "metrics_one_queue"
+version = "0.1.0"
+dependencies = [
+ "lapin",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -2143,8 +2145,8 @@ dependencies = [
  "config",
  "dotenv",
  "lapin",
- "metrics_one_models",
  "metrics_one_proto",
+ "metrics_one_queue",
  "metrics_one_utils",
  "once_cell",
  "prost-types",

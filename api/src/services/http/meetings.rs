@@ -11,7 +11,6 @@ use actix_web::{
     web::{self, Data},
 };
 use chrono::Datelike;
-use metrics_one_models::queue;
 use serde::Deserialize;
 use sqlx::Execute;
 use tracing::{debug, error, info, instrument, trace};
@@ -110,7 +109,7 @@ async fn fetch_meetings(
     // Prepare RabbitMQ payload
     let meetings_keys = meetings.iter().map(|m| m.key).collect();
 
-    let rabbitmq_payload = queue::Meetings {
+    let rabbitmq_payload = metrics_one_queue::models::Meetings {
         year: params.get_year(),
         keys: meetings_keys,
     };

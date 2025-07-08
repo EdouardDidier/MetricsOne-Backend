@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-metrics_one_proto = { path = "../common/proto" }
-metrics_one_utils = { path = "../common/utils" }
-metrics_one_models = { path = "../common/models" }
+metrics_one_proto = { workspace = true }
+metrics_one_queue = { workspace = true }
+metrics_one_utils = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }
 lapin = { workspace = true }

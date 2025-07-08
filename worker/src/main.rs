@@ -4,12 +4,11 @@ mod settings;
 
 use std::{sync::Arc, time::Duration};
 
-use metrics_one_models::queue;
 use metrics_one_proto::proto::insert_service_client::InsertServiceClient;
 use metrics_one_utils::{grpc::try_get_grpc_client, utils};
 use settings::ENV;
 use tokio_stream::StreamExt;
-use tracing::{debug, error, info, trace};
+use tracing::{error, info, trace};
 
 use crate::fetch::meetings::fetch_job;
 
@@ -41,54 +40,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Connection to RabbitMQ
-    // TODO: Move to its own crate
     let rabbitmq_addr = format!("{}:{}", ENV.rabbitmq.host, ENV.rabbitmq.port);
-    debug!(
-        "Connection to RabbitMQ on amqp://{} initiated",
-        rabbitmq_addr
-    );
-
-    let rabbitmq_connection = lapin::Connection::connect(
-        &format!(
-            "amqp://{}:{}@{}/%2f",
-            ENV.rabbitmq.user, ENV.rabbitmq.password, rabbitmq_addr
-        ),
-        lapin::ConnectionProperties::default(),
-    )
-    .await
-    .inspect_err(|err| {
-        error!(error = ?err, "Failed to connect to RabbitMQ");
-    })?;
-
-    info!("Connection to RabbitMQ established");
-
-    // Set up of RabbitMQ channels
-    // TODO: Move to its own crate
-    debug!("Set up of RabbitMQ initiated");
-
-    let rabbitmq_channel = Arc::new(rabbitmq_connection.create_channel().await.inspect_err(
-        |err| {
-            error!(error = ?err, "Failed to create RabbitMQ channel");
-        },
-    )?);
-
-    rabbitmq_channel
-        .queue_declare(
-            "fetch.meetings",
-            lapin::options::QueueDeclareOptions {
-                durable: true,
-                ..Default::default()
-            },
-            lapin::types::FieldTable::default(),
+    let rabbitmq_channel = Arc::new(
+        match metrics_one_queue::get_rabbitmq_channel(
+            &rabbitmq_addr,
+            &ENV.rabbitmq.user,
+            &ENV.rabbitmq.password,
+            &ENV.rabbitmq.queue,
         )
         .await
-        .inspect_err(|err| {
-            error!(error = ?err, "Failed to declare RabbitMQ queue");
-        })?;
-
-    info!("Set up of RabbitMQ completed");
+        {
+            Ok(res) => {
+                info!("Connection to RabbitMQ established on {}", rabbitmq_addr);
+                res
+            }
+            Err(err) => {
+                error!(error = ?err, "Failed to connect to RabbitMQ");
+                return Err(err.into());
+            }
+        },
+    );
 
     // Initializing RabbitMQ listenser
+    // TODO: Create a class to handle multiple queues
     let mut rabbitmq_consumer = rabbitmq_channel
         .basic_consume(
             &ENV.rabbitmq.queue,
@@ -118,7 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 };
 
                 // Deserialize the message
-                let payload: queue::Meetings = match serde_json::from_slice(&delivery.data) {
+                let payload: metrics_one_queue::models::Meetings = match serde_json::from_slice(&delivery.data) {
                     Ok(payload) => payload,
                     Err(err) => {
                         error!(error = ?err, "Failed to deserialize message payload, discarding message");
