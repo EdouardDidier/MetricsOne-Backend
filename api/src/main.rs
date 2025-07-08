@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     rabbitmq_channel
         .queue_declare(
-            "fetch.meetings",
+            &ENV.rabbitmq.queue,
             lapin::options::QueueDeclareOptions {
                 durable: true,
                 ..Default::default()

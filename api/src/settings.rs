@@ -30,6 +30,7 @@ pub struct RabbitMqSettings {
     pub password: String,
     pub host: String,
     pub port: u16,
+    pub queue: String,
 }
 
 #[derive(Debug, Deserialize)]

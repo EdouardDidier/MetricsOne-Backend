@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initializing RabbitMQ listenser
     let mut rabbitmq_consumer = rabbitmq_channel
         .basic_consume(
-            "fetch.meetings",
+            &ENV.rabbitmq.queue,
             "worker",
             lapin::options::BasicConsumeOptions::default(),
             lapin::types::FieldTable::default(),
