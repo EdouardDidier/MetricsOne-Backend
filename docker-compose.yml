@@ -16,6 +16,12 @@ services:
       - POSTGRES_DB=${DB_DBNAME}
     ports:
       - 5432:5432 # Exposed for development
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_DBNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rabbitmq:
     container_name: rabbitmq
@@ -82,6 +88,8 @@ services:
       context: .
       target: api
     depends_on:
+      database:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
