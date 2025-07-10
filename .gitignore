@@ -3,3 +3,4 @@
 
 # Database volume
 /database/data/
+/grafana/data/
