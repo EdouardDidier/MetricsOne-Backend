@@ -1,13 +1,35 @@
 use chrono::{DateTime, Utc};
 use metrics_one_proto::{proto, utils::timestamp_to_datetime};
+use opentelemetry::global;
+use opentelemetry::propagation::Extractor;
 use prost_types::Timestamp;
 use sqlx::Execute;
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{Span, debug, error, info, instrument, trace};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::models::{Meeting, Session};
 use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;
+
+// TODO: Move to common crate and move to traditional struct
+struct MetadataMapExtractor<'a>(&'a tonic::metadata::MetadataMap);
+
+impl Extractor for MetadataMapExtractor<'_> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|value| value.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0
+            .keys()
+            .map(|key| match key {
+                tonic::metadata::KeyRef::Ascii(ascii_key) => ascii_key.as_str(),
+                tonic::metadata::KeyRef::Binary(binary_key) => binary_key.as_str(),
+            })
+            .collect()
+    }
+}
 
 /* ///////////////////// */
 /* //// gRPC Helper //// */
@@ -27,6 +49,12 @@ pub async fn insert(
     handler: &InsertServiceHandler,
     request: tonic::Request<proto::InsertMeetingsRequest>,
 ) -> Result<tonic::Response<proto::InsertMeetingsResponse>, tonic::Status> {
+    // Get Trace context from request metadata
+    let parent_cx = global::get_text_map_propagator(|propagator| {
+        propagator.extract(&MetadataMapExtractor(request.metadata()))
+    });
+    Span::current().set_parent(parent_cx);
+
     let year = request.get_ref().year;
     let meetings = request.into_inner().meetings;
 

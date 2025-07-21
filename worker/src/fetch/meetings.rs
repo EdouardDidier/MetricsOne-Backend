@@ -1,7 +1,24 @@
+use std::str::FromStr;
+
 use metrics_one_proto::proto::{InsertMeetingsRequest, insert_service_client::InsertServiceClient};
-use tracing::{debug, info, instrument, trace};
+use opentelemetry::global;
+use tracing::{Span, debug, info, instrument, trace};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{models::Meetings, settings::ENV};
+
+// TODO: Move to common crate and move to traditional struct
+struct MetadataMapInjector<'a>(&'a mut tonic::metadata::MetadataMap);
+
+impl opentelemetry::propagation::Injector for MetadataMapInjector<'_> {
+    fn set(&mut self, key: &str, value: String) {
+        if let Ok(key) = tonic::metadata::MetadataKey::from_str(key) {
+            if let Ok(val) = tonic::metadata::MetadataValue::try_from(&value) {
+                self.0.insert(key, val);
+            }
+        }
+    }
+}
 
 #[instrument(name = "[Job] Fetch Meetings", skip_all, err)]
 pub async fn fetch_job(
@@ -28,14 +45,25 @@ pub async fn fetch_job(
     let meetings_response: Meetings =
         serde_json::from_str(text.trim_start_matches('\u{feff}').trim())?;
 
-    let mut meetings: InsertMeetingsRequest = meetings_response.into();
+    let meetings: InsertMeetingsRequest = meetings_response.into();
     trace!("Data parsed in {:?}", time.elapsed());
 
     // Prepare meetings to be sent to API service for insertion
-    meetings.meetings.retain(|m| !params.keys.contains(&m.key));
+    let mut request = tonic::Request::new(meetings);
+
+    // Attach Trace context to the request
+    let context = Span::current().context();
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&context, &mut MetadataMapInjector(request.metadata_mut()))
+    });
+
+    request
+        .get_mut()
+        .meetings
+        .retain(|m| !params.keys.contains(&m.key));
     trace!("Data processed in {:?}", time.elapsed());
 
-    let nb_new_entry = meetings.meetings.len();
+    let nb_new_entry = request.get_ref().meetings.len();
     if nb_new_entry == 0 {
         info!("No new entry found");
         return Ok(());
@@ -43,7 +71,7 @@ pub async fn fetch_job(
 
     //Send request for processing to API
     trace!("Send {} new entries to API for insertion", nb_new_entry);
-    api_client.insert_meetings(meetings).await?;
+    api_client.insert_meetings(request).await?; // TODO: Handle error
 
     info!(
         "{} new entries fetched and processed by API service sucessfully in {:?}",

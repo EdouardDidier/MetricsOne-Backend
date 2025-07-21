@@ -52,7 +52,6 @@ impl Settings {
 
 // Loading environment variables
 pub static ENV: Lazy<Settings> = Lazy::new(|| {
-    dotenv::dotenv().ok();
     // Use of 'expect' here because logger is not set after loading environment variables
     Settings::from_env().expect("Failed to parse environment variables")
 });

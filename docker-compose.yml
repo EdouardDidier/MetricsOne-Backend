@@ -32,11 +32,54 @@ services:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     ports:
-      - 5672:5672 # Exposed for develoment
-      - 15672:15672
-      - 15692:15692 # Exposed for development
+      - 5672:5672 # Connections to queues - Exposed for develoment
+      - 15672:15672 # UI
+      - 15692:15692 # Prometheus scraper - Exposed for development
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:latest
+    depends_on:
+      # TODO: Check if required
+      # database:
+      #   condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    volumes:
+      - ./otel/config.yml:/etc/otel/config.yaml # See config.yml for host and port
+    networks:
+      - network
+    ports:
+      - 4317:4317 # OTLP gRPC - Exposed for development
+      # - 4318:4318 # OTLP HTTP
+      - 9464:9464 # Prometheus scrape endpoint - Exposed for development
+    command: ["--config=/etc/otel/config.yaml"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  jaeger:
+    container_name: jaeger
+    image: jaegertracing/all-in-one:latest
+    networks:
+      - network
+    ports:
+      - 16686:16686 # UI
+      # - 14268:14268 # gRPC collector
+      # - 14250:14250 # HTTP collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -74,7 +117,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     ports:
-      - 3001:3000
+      - 3010:3000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 10s
@@ -133,6 +176,7 @@ services:
       - RABBITMQ.QUEUE=${RABBITMQ_QUEUE}
       - API.HOST=api
       - API.PORT=${API_GRPC_PORT}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - LIVETIMING_URL=${LIVETIMING_URL}
       - RUST_LOG=${RUST_LOG}
 
