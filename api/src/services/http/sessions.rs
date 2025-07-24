@@ -8,7 +8,6 @@ use actix_web::{
 };
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::instrument;
 use tracing::{debug, error, info, trace};
 
 use crate::models::Session;
@@ -27,7 +26,6 @@ struct SessionsParams {
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
 
-#[instrument(name = "[HTTP Handler] GET /sessions", skip_all)]
 #[get("/sessions")]
 async fn fetch_sessions(state: Data<AppState>, info: web::Query<SessionsParams>) -> impl Responder {
     let params = info.into_inner();

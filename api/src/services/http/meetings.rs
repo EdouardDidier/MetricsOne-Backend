@@ -18,7 +18,7 @@ use lapin::{
 use opentelemetry::{global, propagation::Injector};
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::{Span, debug, error, info, instrument, trace};
+use tracing::{Span, debug, error, info, trace};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::models::Meeting;
@@ -72,7 +72,6 @@ impl<'a> Injector for AmqpHeaderInjector<'a> {
 /* /////////////////////// */
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
-#[instrument(skip_all)]
 #[get("/{year}/meetings")]
 async fn fetch_meetings(
     state: Data<AppState>,

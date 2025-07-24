@@ -44,7 +44,7 @@ fn process_date(s: &Option<Timestamp>) -> Result<DateTime<Utc>, Box<dyn std::err
 /* //// gRPC Handlers //// */
 /* /////////////////////// */
 
-#[instrument(name = "[gRPC Handler] Insert Meetings", skip_all)]
+#[instrument(name = "gRPC meetings.insert", skip_all)]
 pub async fn insert(
     handler: &InsertServiceHandler,
     request: tonic::Request<proto::InsertMeetingsRequest>,

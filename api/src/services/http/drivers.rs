@@ -5,7 +5,7 @@ use actix_web::{
 use metrics_one_utils::utils;
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{debug, error, info, trace};
 
 use crate::{
     models::{Driver, DriversImages, Team},
@@ -46,7 +46,6 @@ impl DriversParams {
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
 
-#[instrument(name = "[HTTP Handler] GET /{year}/drivers", skip_all)]
 #[get("/{year}/drivers")]
 pub async fn fetch_drivers(
     state: web::Data<AppState>,
@@ -85,7 +84,6 @@ pub async fn fetch_drivers(
     }
 }
 
-#[instrument(name = "[HTTP Handler] GET /{year}/drivers/{name}", skip_all)]
 #[get("/{year}/drivers/{name}")]
 pub async fn fetch_driver_by_name(
     state: Data<AppState>,

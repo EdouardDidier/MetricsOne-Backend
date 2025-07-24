@@ -5,7 +5,7 @@ use actix_web::{
 use metrics_one_utils::utils;
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{debug, error, info, trace};
 
 use crate::{
     AppState,
@@ -42,7 +42,6 @@ impl TeamsParams {
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
 
-#[instrument(name = "[HTTP Handler] GET /{year}/teams", skip_all)]
 #[get("/{year}/teams")]
 pub async fn fetch_teams(
     state: web::Data<AppState>,
@@ -81,7 +80,6 @@ pub async fn fetch_teams(
     }
 }
 
-#[instrument(name = "[HTTP Handler] GET /{year}/teams/{name}", skip_all)]
 #[get("/{year}/teams/{name}")]
 pub async fn fetch_team_by_name(
     state: Data<AppState>,
