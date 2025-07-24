@@ -15,4 +15,3 @@ opentelemetry-otlp = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true }
-hostname = "0.4"

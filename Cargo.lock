@@ -1531,17 +1531,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hostname"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a56f203cd1c76362b69e3863fd987520ac36cf70a8c92627449b2f64a8cf7d65"
-dependencies = [
- "cfg-if",
- "libc",
- "windows-link",
-]
-
-[[package]]
 name = "http"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2158,7 +2147,6 @@ name = "metrics_one_utils"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "hostname",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
