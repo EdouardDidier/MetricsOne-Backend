@@ -11,9 +11,15 @@ use actix_web::{
     web::{self, Data},
 };
 use chrono::Datelike;
+use lapin::{
+    BasicProperties,
+    types::{AMQPValue, FieldTable},
+};
+use opentelemetry::{global, propagation::Injector};
 use serde::Deserialize;
 use sqlx::Execute;
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{Span, debug, error, info, instrument, trace};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::models::Meeting;
 
@@ -51,10 +57,22 @@ impl MeetingsParams {
     }
 }
 
+// TODO: Move to the common crate
+struct AmqpHeaderInjector<'a> {
+    headers: &'a mut FieldTable,
+}
+
+impl<'a> Injector for AmqpHeaderInjector<'a> {
+    fn set(&mut self, key: &str, value: String) {
+        self.headers
+            .insert(key.into(), AMQPValue::LongString(value.into()));
+    }
+}
+
 /* /////////////////////// */
 /* //// HTTP Handlers //// */
 /* /////////////////////// */
-#[instrument(name = "[HTTP Handler] GET /meetings", skip_all)]
+#[instrument(skip_all)]
 #[get("/{year}/meetings")]
 async fn fetch_meetings(
     state: Data<AppState>,
@@ -126,13 +144,30 @@ async fn fetch_meetings(
         }
     };
 
+    let mut rabbitmq_headers = FieldTable::default();
+
+    // Inject trace context into RabbitMQ headers
+    let context = Span::current().context();
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(
+            &context,
+            &mut AmqpHeaderInjector {
+                headers: &mut rabbitmq_headers,
+            },
+        )
+    });
+
+    let rabbitmq_request_properties = BasicProperties::default()
+        .with_headers(rabbitmq_headers)
+        .with_content_type("application/json".into());
+
     // Prepare RabbitMQ request
     let rabbitmq_request = rabbitmq.basic_publish(
         "",
         "fetch.meetings",
         lapin::options::BasicPublishOptions::default(),
         &rabbitmq_body,
-        lapin::BasicProperties::default().with_content_type("application/json".into()),
+        rabbitmq_request_properties,
     );
 
     // Send fetch request to the queue

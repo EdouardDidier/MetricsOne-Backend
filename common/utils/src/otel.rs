@@ -41,6 +41,7 @@ pub fn init_tracing_subscriber(
     // TODO: Check if the name is correct
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
+    // Setup propagator to use W3C Trace Context
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     // Setup of OpenTelemetry - Metrics

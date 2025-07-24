@@ -11,6 +11,7 @@ use settings::ENV;
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use tonic::transport::Server;
 use tracing::{debug, error, info};
+use tracing_actix_web::TracingLogger;
 
 use metrics_one_proto::proto::insert_service_server::InsertServiceServer;
 use metrics_one_utils::utils;
@@ -118,6 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     rabbitmq: rabbitmq_channel.clone(),
                 }))
                 .wrap(cors)
+                .wrap(TracingLogger::default())
                 .service(services::http::fetch_drivers)
                 .service(services::http::fetch_driver_by_name)
                 .service(services::http::fetch_teams)

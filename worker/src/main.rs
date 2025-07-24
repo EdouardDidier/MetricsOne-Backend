@@ -2,17 +2,49 @@ mod fetch;
 mod models;
 mod settings;
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use lapin::types::{AMQPValue, FieldTable};
 use metrics_one_proto::proto::insert_service_client::InsertServiceClient;
 use metrics_one_utils::{grpc::try_get_grpc_client, utils};
 use settings::ENV;
 use tokio_stream::StreamExt;
-use tracing::{error, info, info_span, trace};
+use tracing::{Span, error, info, info_span, trace};
 
-use opentelemetry::{KeyValue, global};
+use opentelemetry::{KeyValue, global, propagation::Extractor};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::fetch::meetings::fetch_job;
+
+// TODO: Move to common crate and move to traditional struct
+struct AmqpHeaderExtractor {
+    headers: HashMap<String, String>,
+}
+
+impl AmqpHeaderExtractor {
+    fn from_field_table(field_table: &FieldTable) -> Self {
+        let headers = field_table
+            .inner()
+            .iter()
+            .filter_map(|(k, v)| match v {
+                AMQPValue::LongString(s) => Some((k.to_string(), s.to_string())),
+                _ => None,
+            })
+            .collect();
+
+        Self { headers }
+    }
+}
+
+impl Extractor for AmqpHeaderExtractor {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.headers.get(key).map(|v| v.as_str())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.headers.keys().map(|k| k.as_str()).collect()
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -109,6 +141,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         break;
                     }
                 };
+
+                // Get Trace context from request metadata
+                let parent_cx = if let Some(headers) = delivery.properties.headers() {
+                    global::get_text_map_propagator(|propagator| {
+                        propagator.extract(&AmqpHeaderExtractor::from_field_table(headers))
+                    })
+                } else {
+                    Span::current().context()
+                };
+
+                let span = info_span!("Message consumer");
+                span.set_parent(parent_cx);
+                let _enter = span.enter();
 
                 // Deserialize the message
                 let payload: metrics_one_queue::models::Meetings = match serde_json::from_slice(&delivery.data) {
