@@ -25,14 +25,8 @@ pub struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
-    let (tracer_provider, meter_provider) =
+    let _otel_guard =
         metrics_one_utils::otel::init_tracing_subscriber("metrics-one-api", &ENV.rust_log);
-    //
-    // // Set up logger
-    // tracing_subscriber::fmt()
-    //     .compact()
-    //     .with_env_filter(tracing_subscriber::EnvFilter::new(ENV.rust_log.clone()))
-    //     .init();
 
     // Connection to PostgreSQL database
     let database_addr = format!("{}:{}", ENV.db.host, ENV.db.port);
@@ -155,14 +149,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .inspect_err(|err| {
             error!(error = ?err, "Error from gRPC server");
         })?;
-
-    tracer_provider.shutdown().inspect_err(|err| {
-        error!(error = ?err, "Failed to shutdown tracer provider");
-    })?;
-
-    meter_provider.shutdown().inspect_err(|err| {
-        error!(error = ?err, "Failed to shutdown meter provider");
-    })?;
 
     Ok(())
 }

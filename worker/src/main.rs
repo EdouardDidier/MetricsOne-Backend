@@ -50,7 +50,7 @@ impl Extractor for AmqpHeaderExtractor {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
-    let (tracer_provider, meter_provider) =
+    let _otel_guard =
         metrics_one_utils::otel::init_tracing_subscriber("metrics-one-worker", &ENV.rust_log);
 
     let meter = global::meter("metrics-one-worker");
@@ -191,14 +191,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         } => {}
     }
-
-    tracer_provider.shutdown().inspect_err(|err| {
-        error!(error = ?err, "Failed to shutdown tracer provider");
-    })?;
-
-    meter_provider.shutdown().inspect_err(|err| {
-        error!(error = ?err, "Failed to shutdown meter provider");
-    })?;
 
     Ok(())
 }
