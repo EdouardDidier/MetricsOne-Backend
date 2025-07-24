@@ -1,6 +1,7 @@
 use std::time::Duration;
 use tracing::{Level, event, instrument};
 
+// TODO: Change return type to Result
 #[instrument(name = "gRPC connection", skip_all)]
 pub async fn try_get_grpc_client<C, CFut, CFn>(
     connect_fn: CFn,

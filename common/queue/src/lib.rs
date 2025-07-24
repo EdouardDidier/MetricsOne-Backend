@@ -1,7 +1,8 @@
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{debug, error, info, instrument};
 
 pub mod models;
 
+// TODO: Refactor into a class and split into different functions
 #[instrument(name = "RabbitMQ connection", skip_all)]
 pub async fn get_rabbitmq_channel(
     addr: &str,
@@ -20,9 +21,8 @@ pub async fn get_rabbitmq_channel(
         error!(error = ?err, "Failed to connect to RabbitMQ");
     })?;
 
-    trace!("Connection to RabbitMQ establised");
+    info!("Connection to RabbitMQ establised");
 
-    // Set up of RabbitMQ channels
     let channel = connection.create_channel().await.inspect_err(|err| {
         error!(error = ?err, "Failed to create RabbitMQ channel");
     })?;
@@ -41,7 +41,7 @@ pub async fn get_rabbitmq_channel(
             error!(error = ?err, "Failed to declare RabbitMQ queue");
         })?;
 
-    info!("Connection and setup of RabbitMQ completed");
+    info!(queue = ?queue, "Queue declared");
 
     Ok(channel)
 }

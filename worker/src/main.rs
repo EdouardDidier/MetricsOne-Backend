@@ -9,7 +9,7 @@ use metrics_one_proto::proto::insert_service_client::InsertServiceClient;
 use metrics_one_utils::{grpc::try_get_grpc_client, utils};
 use settings::ENV;
 use tokio_stream::StreamExt;
-use tracing::{Span, error, info, info_span, trace};
+use tracing::{Span, debug, error, info, info_span, trace};
 
 use opentelemetry::{KeyValue, global, propagation::Extractor};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -59,20 +59,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Move above code to its own crate
 
     // Setup of gRPC - TODO: Move to its own class
-    let api_addr = format!("http://{}:{}", ENV.api.host, ENV.api.port);
     let api_client = {
         let _span = info_span!("gRPC setup").entered();
 
+        let addr = format!("http://{}:{}", ENV.api.host, ENV.api.port);
+        debug!("Connection to API service on {} initiated", addr);
+
         // Connection to API with gRPC
-        match try_get_grpc_client(
-            InsertServiceClient::connect,
-            &api_addr,
-            Duration::from_secs(1),
-        )
-        .await
+        match try_get_grpc_client(InsertServiceClient::connect, &addr, Duration::from_secs(1)).await
         {
             Some(res) => {
-                info!("Connection to API service established on {}", api_addr);
+                info!("Connection to API service established");
                 res
             }
             None => {
@@ -82,45 +79,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Setup of RabbitMQ - TDOO: Move to its own class
+    // Setup of RabbitMQ - TODO: Move to its own class
     let mut rabbitmq_consumer = {
         let _span = info_span!("RabbitMQ setup").entered();
 
         // Connection to RabbitMQ
-        let rabbitmq_addr = format!("{}:{}", ENV.rabbitmq.host, ENV.rabbitmq.port);
-        let rabbitmq_channel = Arc::new(
-            match metrics_one_queue::get_rabbitmq_channel(
-                &rabbitmq_addr,
+        let addr = format!("{}:{}", ENV.rabbitmq.host, ENV.rabbitmq.port);
+        let channel = Arc::new(
+            metrics_one_queue::get_rabbitmq_channel(
+                &addr,
                 &ENV.rabbitmq.user,
                 &ENV.rabbitmq.password,
-                &ENV.rabbitmq.queue,
+                &ENV.rabbitmq.queue, // TODO: Move as constant to the common crate
             )
             .await
-            {
-                Ok(res) => {
-                    info!("Connection to RabbitMQ established on {}", rabbitmq_addr);
-                    res
-                }
-                Err(err) => {
-                    error!(error = ?err, "Failed to connect to RabbitMQ");
-                    return Err(err.into());
-                }
-            },
+            .inspect_err(|err| {
+                error!(error = ?err, "Failed to connect to RabbitMQ");
+            })?,
         );
 
         // Initializing RabbitMQ listenser
         // TODO: Create a class to handle multiple queues
-        rabbitmq_channel
+        let consumer = channel
             .basic_consume(
-                &ENV.rabbitmq.queue,
-                "worker",
+                &ENV.rabbitmq.queue, // TODO: Move as constant to the common crate
+                "worker",            // TODO: Move to a constant
                 lapin::options::BasicConsumeOptions::default(),
                 lapin::types::FieldTable::default(),
             )
             .await
             .inspect_err(|err| {
                 error!(error = ?err, "Consumer failed");
-            })?
+            })?;
+
+        info!(
+            "RabbitMQ consumer setup completed and listening to queue '{}'",
+            ENV.rabbitmq.queue
+        );
+
+        consumer
     };
 
     // Start listening on RabbitMQ
