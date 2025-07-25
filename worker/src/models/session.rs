@@ -1,8 +1,8 @@
-use metrics_one_proto::proto;
+use metrics_one_grpc::proto;
 use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use metrics_one_proto::serde::{gmt_offset, timestamp};
+use metrics_one_grpc::serde::{gmt_offset, timestamp};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]

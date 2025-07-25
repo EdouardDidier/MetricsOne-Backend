@@ -13,7 +13,7 @@ use tonic::transport::Server;
 use tracing::{debug, error, info, info_span};
 use tracing_actix_web::TracingLogger;
 
-use metrics_one_proto::proto::insert_service_server::InsertServiceServer;
+use metrics_one_grpc::proto::insert_service_server::InsertServiceServer;
 use metrics_one_utils::utils;
 
 pub struct AppState {

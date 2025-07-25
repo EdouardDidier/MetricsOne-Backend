@@ -2,7 +2,7 @@ mod meetings;
 
 use std::sync::Arc;
 
-use metrics_one_proto::proto::{self, insert_service_server::InsertService};
+use metrics_one_grpc::proto::{self, insert_service_server::InsertService};
 use sqlx::{Pool, Postgres};
 
 //TODO: Move to dedicated file

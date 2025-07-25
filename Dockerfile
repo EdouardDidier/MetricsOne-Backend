@@ -20,12 +20,12 @@ COPY api/Cargo.toml api/
 COPY worker/Cargo.toml worker/
 
 COPY common/macros/Cargo.toml common/macros/
-COPY common/proto/Cargo.toml common/proto/
+COPY common/grpc/Cargo.toml common/grpc/
 COPY common/queue/Cargo.toml common/queue/
 COPY common/utils/Cargo.toml common/utils/
 
 RUN mkdir -p api/src worker/src \
-             common/macros/src common/proto/src common/queue/src common/utils/src
+             common/macros/src common/grpc/src common/queue/src common/utils/src
 RUN echo "fn main() {}" > api/src/main.rs && \
     echo "fn main() {}" > worker/src/main.rs && \
     echo "use proc_macro::TokenStream;\n" \ 
@@ -33,7 +33,7 @@ RUN echo "fn main() {}" > api/src/main.rs && \
          "pub fn _dummy(_input: TokenStream) -> TokenStream " \
          "{TokenStream::new()}\n" \ 
          > common/macros/src/lib.rs && \
-    echo "pub fn dummy() {}" > common/proto/src/lib.rs && \
+    echo "pub fn dummy() {}" > common/grpc/src/lib.rs && \
     echo "pub fn dummy() {}" > common/queue/src/lib.rs && \
     echo "pub fn dummy() {}" > common/utils/src/lib.rs && \
     cargo build --release 

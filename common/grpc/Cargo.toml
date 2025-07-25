@@ -1,5 +1,5 @@
 [package]
-name = "metrics_one_proto"
+name = "metrics_one_grpc"
 version = "0.1.0"
 edition = "2024"
 

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use metrics_one_proto::{proto, utils::timestamp_to_datetime};
+use metrics_one_grpc::{proto, utils::timestamp_to_datetime};
 use opentelemetry::global;
 use opentelemetry::propagation::Extractor;
 use prost_types::Timestamp;

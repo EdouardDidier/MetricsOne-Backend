@@ -2089,8 +2089,8 @@ dependencies = [
  "config",
  "dotenv",
  "lapin",
+ "metrics_one_grpc",
  "metrics_one_macros",
- "metrics_one_proto",
  "metrics_one_queue",
  "metrics_one_utils",
  "once_cell",
@@ -2111,15 +2111,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "metrics_one_macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "metrics_one_proto"
+name = "metrics_one_grpc"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -2131,6 +2123,14 @@ dependencies = [
  "sqlx",
  "tonic",
  "tonic-build",
+]
+
+[[package]]
+name = "metrics_one_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2167,7 +2167,7 @@ dependencies = [
  "config",
  "dotenv",
  "lapin",
- "metrics_one_proto",
+ "metrics_one_grpc",
  "metrics_one_queue",
  "metrics_one_utils",
  "once_cell",

@@ -1,4 +1,4 @@
-use metrics_one_proto::proto::{self, InsertMeetingsRequest};
+use metrics_one_grpc::proto::{self, InsertMeetingsRequest};
 use serde::{Deserialize, Serialize};
 
 use crate::models::Session;

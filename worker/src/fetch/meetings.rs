@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use metrics_one_proto::proto::{InsertMeetingsRequest, insert_service_client::InsertServiceClient};
+use metrics_one_grpc::proto::{InsertMeetingsRequest, insert_service_client::InsertServiceClient};
 use opentelemetry::global;
 use tracing::{Span, debug, info, instrument, trace};
 use tracing_opentelemetry::OpenTelemetrySpanExt;

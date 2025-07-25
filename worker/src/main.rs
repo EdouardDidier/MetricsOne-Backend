@@ -5,7 +5,7 @@ mod settings;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use lapin::types::{AMQPValue, FieldTable};
-use metrics_one_proto::proto::insert_service_client::InsertServiceClient;
+use metrics_one_grpc::proto::insert_service_client::InsertServiceClient;
 use metrics_one_utils::{grpc::try_get_grpc_client, utils};
 use settings::ENV;
 use tokio_stream::StreamExt;

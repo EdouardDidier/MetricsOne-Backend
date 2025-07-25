@@ -4,14 +4,14 @@ members = [
   "api",
   "worker",
   "common/macros",
-  "common/proto",
+  "common/grpc",
   "common/queue",
   "common/utils",
 ]
 
 [workspace.dependencies]
 metrics_one_macros = { path = "./common/macros" }
-metrics_one_proto = { path = "./common/proto" }
+metrics_one_grpc = { path = "./common/grpc" }
 metrics_one_queue = { path = "./common/queue" }
 metrics_one_utils = { path = "./common/utils" }
 tokio = { version = "1", features = ["full"] }
