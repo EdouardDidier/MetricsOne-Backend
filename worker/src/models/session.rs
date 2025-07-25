@@ -23,7 +23,7 @@ pub struct Session {
     #[serde(with = "gmt_offset")]
     pub gmt_offset: i64,
 
-    pub path: String,
+    pub path: Option<String>,
 }
 
 impl From<Session> for proto::insert_meetings_request::meeting::Session {
@@ -40,7 +40,7 @@ impl From<Session> for proto::insert_meetings_request::meeting::Session {
                 t.seconds -= s.gmt_offset;
                 t
             }),
-            path: s.path,
+            path: s.path.unwrap_or_default(),
         }
     }
 }

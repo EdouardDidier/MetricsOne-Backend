@@ -9,6 +9,9 @@ tonic = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }
 chrono = { workspace = true }
+tracing = { workspace = true }
+opentelemetry = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 prost = "0.13.5"
 prost-types = { workspace = true }
 

@@ -6,7 +6,10 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use lapin::types::{AMQPValue, FieldTable};
 use metrics_one_grpc::proto::insert_service_client::InsertServiceClient;
-use metrics_one_utils::{grpc::try_get_grpc_client, utils};
+use metrics_one_utils::{
+    grpc::{ShutdownSignalError, try_get_grpc_channel},
+    utils,
+};
 use settings::ENV;
 use tokio_stream::StreamExt;
 use tracing::{Span, debug, error, info, info_span, trace};
@@ -66,15 +69,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Connection to API service on {} initiated", addr);
 
         // Connection to API with gRPC
-        match try_get_grpc_client(InsertServiceClient::connect, &addr, Duration::from_secs(1)).await
-        {
-            Some(res) => {
+        // let channel = tonic::transport::Endpoint::from_static(&addr).connect().await?;
+        // InsertServiceClient::with_interceptor(channel, metrics_one_grpc::interceptor::TracingInterceptor)
+
+        match try_get_grpc_channel(addr, Duration::from_secs(1)).await {
+            Ok(res) => {
                 info!("Connection to API service established");
-                res
+                InsertServiceClient::with_interceptor(
+                    res,
+                    metrics_one_grpc::interceptor::tracing::tracing_injector,
+                )
             }
-            None => {
-                info!("No connection to API service, aborting server startup...");
-                return Ok(());
+            Err(err) => {
+                if err.is::<ShutdownSignalError>() {
+                    info!("{}", err);
+                    return Ok(());
+                } else {
+                    error!(error = %err, "Failed to connect to API service, aborting server startup...");
+                    return Err(err);
+                }
             }
         }
     };

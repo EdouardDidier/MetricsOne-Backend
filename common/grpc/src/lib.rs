@@ -1,3 +1,4 @@
+pub mod interceptor;
 pub mod serde;
 pub mod utils;
 

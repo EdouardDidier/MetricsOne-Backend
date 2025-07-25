@@ -12,25 +12,6 @@ use crate::services::query_preparer::{SqlType, insert::InsertQuery};
 
 use super::InsertServiceHandler;
 
-// TODO: Move to common crate and move to traditional struct
-struct MetadataMapExtractor<'a>(&'a tonic::metadata::MetadataMap);
-
-impl Extractor for MetadataMapExtractor<'_> {
-    fn get(&self, key: &str) -> Option<&str> {
-        self.0.get(key).and_then(|value| value.to_str().ok())
-    }
-
-    fn keys(&self) -> Vec<&str> {
-        self.0
-            .keys()
-            .map(|key| match key {
-                tonic::metadata::KeyRef::Ascii(ascii_key) => ascii_key.as_str(),
-                tonic::metadata::KeyRef::Binary(binary_key) => binary_key.as_str(),
-            })
-            .collect()
-    }
-}
-
 /* ///////////////////// */
 /* //// gRPC Helper //// */
 /* ///////////////////// */
@@ -49,9 +30,12 @@ pub async fn insert(
     handler: &InsertServiceHandler,
     request: tonic::Request<proto::InsertMeetingsRequest>,
 ) -> Result<tonic::Response<proto::InsertMeetingsResponse>, tonic::Status> {
+    // TODO: Move the extractor to gRPC crate using Tower
     // Get Trace context from request metadata
     let parent_cx = global::get_text_map_propagator(|propagator| {
-        propagator.extract(&MetadataMapExtractor(request.metadata()))
+        propagator.extract(
+            &metrics_one_grpc::interceptor::tracing::MetadataMapExtractor(request.metadata()),
+        )
     });
     Span::current().set_parent(parent_cx);
 

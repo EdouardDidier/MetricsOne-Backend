@@ -97,7 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         tokio::spawn(
             Server::builder()
-                .add_service(InsertServiceServer::new(insert_service))
+                .add_service(InsertServiceServer::with_interceptor(
+                    insert_service,
+                    metrics_one_grpc::interceptor::tracing::tracing_extractor,
+                ))
                 .serve_with_shutdown(addr, shutdown_signal),
         )
     };

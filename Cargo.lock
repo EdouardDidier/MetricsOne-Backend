@@ -2116,6 +2116,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "metrics_one_macros",
+ "opentelemetry",
  "prost",
  "prost-types",
  "prost-wkt-types",
@@ -2123,6 +2124,8 @@ dependencies = [
  "sqlx",
  "tonic",
  "tonic-build",
+ "tracing",
+ "tracing-opentelemetry",
 ]
 
 [[package]]
