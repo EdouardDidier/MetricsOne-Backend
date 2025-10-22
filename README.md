@@ -1,1 +1,3 @@
 Work in progress...
+
+![](docs/GlobalArchitecture.png)
